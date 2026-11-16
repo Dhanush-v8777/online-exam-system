@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+<title>Edit Exam | Exam Scheduler</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+    }
+
+    body {
+        margin: 0;
+        padding: 30px 15px;
+        background: #f3f6fb;
+        color: #1e293b;
+    }
+
+    .container {
+        max-width: 650px;
+        margin: auto;
+        background: white;
+        padding: 30px;
+        border-radius: 14px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    h1 {
+        color: #1d4ed8;
+        margin-top: 0;
+    }
+
+    p {
+        color: #64748b;
+    }
+
+    label {
+        display: block;
+        margin: 18px 0 8px;
+        font-weight: bold;
+    }
+
+    input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 7px;
+        font-size: 15px;
+    }
+
+    input:focus {
+        outline: 2px solid #93c5fd;
+        border-color: #2563eb;
+    }
+
+    button, .back {
+        display: inline-block;
+        padding: 12px 18px;
+        margin-top: 24px;
+        border: none;
+        border-radius: 7px;
+        font-size: 15px;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    button {
+        background: #1d4ed8;
+        color: white;
+    }
+
+    button:hover {
+        background: #1e40af;
+    }
+
+    .back {
+        background: #e2e8f0;
+        color: #1e293b;
+        margin-left: 8px;
+    }
+
+    .back:hover {
+        background: #cbd5e1;
+    }
+</style>
+
+
+</head>
+
+<body>
+<div class="container">
+
+``
+<h1>Edit Exam</h1>
+<div th:if="${errorMessage}"
+     th:text="${errorMessage}"
+     style="background-color:#fee2e2;
+            color:#b91c1c;
+            padding:12px;
+            margin:15px 0;
+            border-radius:8px;
+            font-weight:bold;">
+</div>
+
+<p>Update the examination details below.</p>
+
+<form th:action="@{/exams/update/{id}(id=${exam.id})}"
+      th:object="${exam}"
+      method="post">
+
+    <label for="subjectName">Subject Name</label>
+    <input type="text"
+           id="subjectName"
+           th:field="*{subjectName}"
+           required>
+
+    <label for="examDate">Exam Date</label>
+    <input type="date"
+       id="examDate"
+       name="examDate"
+       th:value="${exam.examDate}"
+       required>
+
+    <label for="examTime">Exam Time</label>
+    <input type="time"
+           id="examTime"
+           th:field="*{examTime}"
+           required>
+
+    <label for="durationMinutes">Duration (Minutes)</label>
+    <input type="number"
+           id="durationMinutes"
+           th:field="*{durationMinutes}"
+           min="1"
+           required>
+
+    <label for="venue">Exam Venue</label>
+    <input type="text"
+           id="venue"
+           th:field="*{venue}"
+           required>
+
+    <button type="submit">Update Exam</button>
+    <a href="/exams" class="back">Cancel</a>
+
+</form>
+
+
+</div>
+</body>
+</html>

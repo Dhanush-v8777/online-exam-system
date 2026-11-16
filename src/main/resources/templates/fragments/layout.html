@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+
+<!-- DELEGATE TO DEDICATED ADMIN SIDEBAR -->
+<div th:fragment="adminSidebar(active)">
+    <div th:replace="~{fragments/admin-sidebar :: adminSidebar(${active})}"></div>
+</div>
+
+<!-- DELEGATE TO DEDICATED COORDINATOR SIDEBAR -->
+<div th:fragment="coordinatorSidebar(active)">
+    <div th:replace="~{fragments/coordinator-sidebar :: coordinatorSidebar(${active})}"></div>
+</div>
+
+<!-- DELEGATE TO DEDICATED FACULTY SIDEBAR -->
+<div th:fragment="facultySidebar(active)">
+    <div th:replace="~{fragments/faculty-sidebar :: facultySidebar(${active})}"></div>
+</div>
+
+<!-- DYNAMIC ROLE SIDEBAR (Automatically selects sidebar based on authenticated role) -->
+<div th:fragment="roleSidebar(active)">
+    <div th:if="${currentUser != null}">
+        <div th:if="${currentUser.role.name() == 'ADMIN'}">
+            <div th:replace="~{fragments/admin-sidebar :: adminSidebar(${active})}"></div>
+        </div>
+        <div th:if="${currentUser.role.name() == 'EXAM_COORDINATOR'}">
+            <div th:replace="~{fragments/coordinator-sidebar :: coordinatorSidebar(${active})}"></div>
+        </div>
+        <div th:if="${currentUser.role.name() == 'FACULTY'}">
+            <div th:replace="~{fragments/faculty-sidebar :: facultySidebar(${active})}"></div>
+        </div>
+    </div>
+    <!-- Fallback if currentUser model attribute was not populated -->
+    <div th:if="${currentUser == null}">
+        <div sec:authorize="hasRole('ADMIN')">
+            <div th:replace="~{fragments/admin-sidebar :: adminSidebar(${active})}"></div>
+        </div>
+        <div sec:authorize="hasRole('EXAM_COORDINATOR')">
+            <div th:replace="~{fragments/coordinator-sidebar :: coordinatorSidebar(${active})}"></div>
+        </div>
+        <div sec:authorize="hasRole('FACULTY')">
+            <div th:replace="~{fragments/faculty-sidebar :: facultySidebar(${active})}"></div>
+        </div>
+    </div>
+</div>
+
+<!-- DELEGATE TO REUSABLE TOPBAR -->
+<header th:fragment="topbar(title)">
+    <div th:replace="~{fragments/header :: topbar(${title})}"></div>
+</header>
+
+</body>
+</html>

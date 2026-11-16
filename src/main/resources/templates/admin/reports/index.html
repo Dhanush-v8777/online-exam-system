@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports & Export | SmartExam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --navy: #0f172a; --blue: #2563eb; --sidebar-width: 260px; }
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f1f5f9; color: #1e293b; margin: 0; }
+        .sidebar { position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100vh; background: var(--navy); z-index: 1000; display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar-brand { padding: 22px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-brand h4 { color: #fff; font-weight: 700; font-size: 1.15rem; margin: 0; }
+        .sidebar-brand p { color: #94a3b8; font-size: 0.72rem; margin: 2px 0 0; }
+        .sidebar-nav { padding: 14px 0; flex: 1; }
+        .sidebar-section { padding: 8px 20px 4px; color: #64748b; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
+        .sidebar-nav .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 500; border-left: 3px solid transparent; }
+        .sidebar-nav .nav-link.active { color: #fff; background: rgba(37,99,235,0.18); border-left-color: var(--blue); font-weight: 600; }
+        .sidebar-nav .nav-link i { font-size: 1.05rem; width: 20px; }
+        .main-wrapper { margin-left: var(--sidebar-width); min-height: 100vh; display: flex; flex-direction: column; }
+        .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar-title { font-size: 1.05rem; font-weight: 600; color: var(--navy); }
+        .page-content { padding: 26px 28px; flex: 1; }
+        .report-card {
+            background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding: 24px; height: 100%;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .report-icon {
+            width: 48px; height: 48px; border-radius: 10px; display: flex;
+            align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 16px;
+        }
+    </style>
+    <link rel="stylesheet" th:href="@{/css/dashboard-common.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: roleSidebar('reports')}"></div>
+
+<div class="main-wrapper">
+    <header class="topbar">
+        <div class="topbar-title">Institutional Reports & Document Export</div>
+    </header>
+
+    <div class="page-content">
+        <div class="row g-4">
+            <!-- Room Utilization Report -->
+            <div class="col-md-6 col-lg-3">
+                <div class="report-card">
+                    <div>
+                        <div class="report-icon" style="background:#f3e8ff;color:#9333ea;"><i class="bi bi-door-open-fill"></i></div>
+                        <h5 class="fw-bold mb-2">Room Utilization</h5>
+                        <p class="text-muted" style="font-size:0.85rem;">Track hall seating capacity, allocated examinations, occupied dates, and utilization efficiency metrics.</p>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="/admin/reports/room-utilization" class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-eye me-1"></i> View Utilization</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Faculty Workload Report -->
+            <div class="col-md-6 col-lg-3">
+                <div class="report-card">
+                    <div>
+                        <div class="report-icon" style="background:#dcfce7;color:#16a34a;"><i class="bi bi-person-lines-fill"></i></div>
+                        <h5 class="fw-bold mb-2">Faculty Workload</h5>
+                        <p class="text-muted" style="font-size:0.85rem;">Detailed breakdown of assigned invigilation duties, duty quotas, and availability metrics per faculty.</p>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="/admin/reports/faculty-workload" class="btn btn-sm btn-outline-primary flex-grow-1"><i class="bi bi-eye me-1"></i> View</a>
+                        <a href="/admin/reports/faculty/excel" class="btn btn-sm btn-outline-success flex-grow-1"><i class="bi bi-file-earmark-excel me-1"></i> Excel</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timetable Report -->
+            <div class="col-md-6 col-lg-3">
+                <div class="report-card">
+                    <div>
+                        <div class="report-icon" style="background:#dbeafe;color:#2563eb;"><i class="bi bi-calendar-week"></i></div>
+                        <h5 class="fw-bold mb-2">Examination Timetable</h5>
+                        <p class="text-muted" style="font-size:0.85rem;">Comprehensive university schedule with dates, room assignments, duration, and course details.</p>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="/admin/reports/timetable/pdf" class="btn btn-sm btn-outline-danger flex-grow-1"><i class="bi bi-file-earmark-pdf me-1"></i> PDF</a>
+                        <a href="/admin/reports/timetable/excel" class="btn btn-sm btn-outline-success flex-grow-1"><i class="bi bi-file-earmark-excel me-1"></i> Excel</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Seating Report -->
+            <div class="col-md-6 col-lg-3">
+                <div class="report-card">
+                    <div>
+                        <div class="report-icon" style="background:#fef3c7;color:#d97706;"><i class="bi bi-grid-3x3"></i></div>
+                        <h5 class="fw-bold mb-2">Seating Arrangement</h5>
+                        <p class="text-muted" style="font-size:0.85rem;">Generate and print session-wise seating allocations mapped to room capacities and roll numbers.</p>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="/admin/seating" class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-printer me-1"></i> Open Printable Seating</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

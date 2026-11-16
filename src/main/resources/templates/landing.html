@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartExam | Intelligent Examination Scheduling & Invigilation Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #0f172a;
+            --navy-dark: #090d16;
+            --navy-light: #1e293b;
+            --blue: #2563eb;
+            --blue-hover: #1d4ed8;
+            --blue-subtle: #eff6ff;
+            --slate-500: #64748b;
+            --slate-100: #f1f5f9;
+        }
+
+        html { scroll-behavior: smooth; }
+        * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+        body { background-color: #ffffff; color: #1e293b; margin: 0; overflow-x: hidden; }
+
+        /* Navigation Bar */
+        .navbar-smart {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            transition: all 0.3s ease;
+        }
+        .navbar-brand { font-weight: 800; font-size: 1.35rem; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+        .nav-link { font-weight: 500; font-size: 0.92rem; color: #475569 !important; padding: 0.5rem 1rem !important; transition: color 0.15s; }
+        .nav-link:hover { color: var(--blue) !important; }
+        .btn-nav-login {
+            background: var(--blue); color: #fff !important; font-weight: 600; font-size: 0.88rem;
+            padding: 8px 22px; border-radius: 10px; border: none; transition: all 0.2s;
+        }
+        .btn-nav-login:hover { background: var(--blue-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
+
+        /* Hero Section */
+        .hero-section {
+            background: radial-gradient(circle at 85% 15%, rgba(37,99,235,0.08) 0%, transparent 60%),
+                        linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+            padding: 100px 0 80px;
+            position: relative;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: #eff6ff; color: var(--blue); border: 1px solid #bfdbfe;
+            padding: 6px 16px; border-radius: 9999px; font-size: 0.82rem; font-weight: 600; margin-bottom: 24px;
+        }
+        .hero-title {
+            font-size: 3.2rem; font-weight: 800; color: var(--navy); line-height: 1.18; letter-spacing: -0.02em; margin-bottom: 20px;
+        }
+        .hero-title .text-gradient {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero-desc { font-size: 1.15rem; color: var(--slate-500); line-height: 1.65; max-width: 540px; margin-bottom: 32px; }
+        .btn-hero-primary {
+            background: var(--blue); color: #fff; font-weight: 600; font-size: 1rem;
+            padding: 14px 32px; border-radius: 12px; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-hero-primary:hover { background: var(--blue-hover); color: #fff; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(37,99,235,0.3); }
+        .btn-hero-secondary {
+            background: #fff; color: var(--navy); font-weight: 600; font-size: 1rem;
+            padding: 14px 28px; border-radius: 12px; border: 1.5px solid #cbd5e1; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-hero-secondary:hover { background: #f8fafc; color: var(--navy); border-color: #94a3b8; }
+
+        /* Hero Preview Card Graphic */
+        .hero-preview-card {
+            background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0;
+            box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.15); padding: 28px; position: relative;
+        }
+        .preview-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9; margin-bottom: 18px; }
+        .preview-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .preview-stat-card {
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; text-align: left;
+        }
+
+        /* Section Styling */
+        .section-header { text-align: center; max-width: 680px; margin: 0 auto 56px; }
+        .section-badge {
+            background: #eff6ff; color: var(--blue); font-size: 0.78rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 14px; border-radius: 9999px; display: inline-block; margin-bottom: 12px;
+        }
+        .section-title { font-size: 2.2rem; font-weight: 800; color: var(--navy); letter-spacing: -0.01em; margin-bottom: 14px; }
+        .section-subtitle { font-size: 1rem; color: var(--slate-500); line-height: 1.6; }
+
+        /* Feature Cards */
+        .feature-card {
+            background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 32px 28px;
+            transition: all 0.25s ease-in-out; height: 100%; display: flex; flex-direction: column;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px); border-color: #bfdbfe;
+            box-shadow: 0 16px 32px -10px rgba(37,99,235,0.12);
+        }
+        .feature-icon-box {
+            width: 52px; height: 52px; border-radius: 14px; background: #eff6ff; color: var(--blue);
+            display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 20px;
+        }
+        .feature-card:hover .feature-icon-box { background: var(--blue); color: #fff; }
+        .feature-title { font-size: 1.15rem; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
+        .feature-desc { font-size: 0.9rem; color: var(--slate-500); line-height: 1.6; margin: 0; }
+
+        /* How It Works Steps */
+        .step-card {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px 24px;
+            text-align: center; position: relative; height: 100%; transition: all 0.2s;
+        }
+        .step-card:hover { border-color: var(--blue); transform: translateY(-3px); }
+        .step-number {
+            width: 44px; height: 44px; border-radius: 50%; background: var(--navy); color: #fff;
+            display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem;
+            margin: 0 auto 16px; box-shadow: 0 4px 10px rgba(15,23,42,0.25);
+        }
+
+        /* About Section */
+        .about-section { background: #f8fafc; padding: 90px 0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+        .about-highlight-box {
+            background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 24px; margin-bottom: 16px;
+            display: flex; align-items: flex-start; gap: 16px;
+        }
+
+        /* Contact Section */
+        .contact-card {
+            background: linear-gradient(135deg, var(--navy) 0%, #1e3a8a 100%);
+            border-radius: 20px; color: #fff; padding: 48px;
+        }
+
+        /* Footer */
+        .footer { background: var(--navy-dark); color: #94a3b8; padding: 60px 0 30px; font-size: 0.88rem; }
+        .footer-brand { font-size: 1.25rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .footer-link { color: #94a3b8; text-decoration: none; transition: color 0.15s; }
+        .footer-link:hover { color: #fff; }
+        .footer-bottom { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 24px; margin-top: 48px; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-light fixed-top navbar-smart py-3">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <i class="bi bi-mortarboard-fill text-primary fs-3"></i>
+            <span>SmartExam</span>
+        </a>
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMenu">
+            <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+                <li class="nav-item"><a class="nav-link" href="#home">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+                <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <a href="/login" class="btn btn-nav-login">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Login
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero-section" id="home">
+    <div class="container pt-4">
+        <!-- Optional Logout Notice Banner -->
+        <div th:if="${logoutMsg}" class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-4 mx-auto" style="max-width: 600px;">
+            <i class="bi bi-check-circle-fill"></i>
+            <span th:text="${logoutMsg}">You have been logged out.</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="row align-items-center gy-5">
+            <div class="col-lg-6 text-start">
+                <div class="hero-badge">
+                    <i class="bi bi-stars"></i> Intelligent Academic Timetable Engine
+                </div>
+                <h1 class="hero-title">
+                    Smart Examination Management, <span class="text-gradient">Made Simple.</span>
+                </h1>
+                <p class="hero-desc">
+                    Plan examinations, manage invigilators, detect scheduling conflicts and organize academic examinations through one intelligent platform.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="/login" class="btn btn-hero-primary">
+                        Get Started <i class="bi bi-arrow-right"></i>
+                    </a>
+                    <a href="#features" class="btn btn-hero-secondary">
+                        <i class="bi bi-grid-fill text-primary"></i> Explore Features
+                    </a>
+                </div>
+                <div class="d-flex align-items-center gap-4 mt-4 pt-3 border-top" style="border-color: #e2e8f0 !important;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-check2-circle text-success fs-5"></i>
+                        <span class="small fw-semibold text-secondary">Zero Double Bookings</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-check2-circle text-success fs-5"></i>
+                        <span class="small fw-semibold text-secondary">Automated Seating</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-check2-circle text-success fs-5"></i>
+                        <span class="small fw-semibold text-secondary">Dynamic Analytics</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Illustration & System Visual Preview -->
+            <div class="col-lg-6">
+                <div class="hero-preview-card">
+                    <div class="preview-header">
+                        <div class="d-flex gap-2">
+                            <span class="preview-dot" style="background:#ef4444;"></span>
+                            <span class="preview-dot" style="background:#f59e0b;"></span>
+                            <span class="preview-dot" style="background:#10b981;"></span>
+                        </div>
+                        <span class="badge bg-light text-navy fw-semibold border px-3 py-1">SmartExam Core Engine</span>
+                    </div>
+
+                    <!-- Examination & Academic Scheduling Graphic Illustration -->
+                    <div class="text-center py-2 mb-3">
+                        <svg width="220" height="110" viewBox="0 0 220 110" fill="none" xmlns="http://www.w3.org/2000/svg" class="img-fluid">
+                            <rect x="25" y="20" width="170" height="80" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="2"/>
+                            <!-- Calendar header -->
+                            <rect x="25" y="20" width="170" height="24" rx="10" fill="#2563EB"/>
+                            <rect x="25" y="34" width="170" height="10" fill="#2563EB"/>
+                            <circle cx="45" cy="32" r="3" fill="#FFFFFF"/>
+                            <circle cx="58" cy="32" r="3" fill="#FFFFFF"/>
+                            <circle cx="71" cy="32" r="3" fill="#FFFFFF"/>
+                            <rect x="130" y="28" width="50" height="8" rx="4" fill="#93C5FD"/>
+                            <!-- Schedule Grid Slots -->
+                            <rect x="38" y="52" width="30" height="18" rx="4" fill="#EFF6FF" stroke="#BFDBFE"/>
+                            <path d="M48 61L51 64L58 57" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="76" y="52" width="30" height="18" rx="4" fill="#EFF6FF" stroke="#BFDBFE"/>
+                            <path d="M86 61L89 64L96 57" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="114" y="52" width="30" height="18" rx="4" fill="#EFF6FF" stroke="#BFDBFE"/>
+                            <path d="M124 61L127 64L134 57" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="152" y="52" width="30" height="18" rx="4" fill="#DCFCE7" stroke="#86EFAC"/>
+                            <path d="M162 61L165 64L172 57" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <!-- Row 2 -->
+                            <rect x="38" y="76" width="42" height="14" rx="3" fill="#E2E8F0"/>
+                            <rect x="88" y="76" width="56" height="14" rx="3" fill="#E2E8F0"/>
+                            <rect x="152" y="76" width="30" height="14" rx="3" fill="#DBEAFE"/>
+                            <!-- Floating Graduation Cap Badge -->
+                            <circle cx="195" cy="22" r="18" fill="#0F172A" stroke="#FFFFFF" stroke-width="3"/>
+                            <path d="M195 14L184 19L195 24L206 19L195 14Z" fill="#F8FAFC"/>
+                            <path d="M188 21.5V26.5C188 28.5 191 30.5 195 30.5C199 30.5 202 28.5 202 26.5V21.5" stroke="#F8FAFC" stroke-width="1.5" stroke-linecap="round"/>
+                            <path d="M206 19V27" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <div class="preview-stat-card">
+                                <small class="text-muted fw-bold">Active Conflicts</small>
+                                <div class="fs-4 fw-bold text-success">0 Detected</div>
+                                <small class="text-success"><i class="bi bi-shield-check me-1"></i>Schedule Optimal</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="preview-stat-card">
+                                <small class="text-muted fw-bold">Invigilation Status</small>
+                                <div class="fs-4 fw-bold text-primary">100% Allocated</div>
+                                <small class="text-muted">Fair Duty Distribution</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 border">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold small text-navy"><i class="bi bi-calendar3 me-1 text-primary"></i>Live Schedule Matrix</span>
+                            <span class="badge bg-success">Automated Mode</span>
+                        </div>
+                        <div class="small text-muted mb-1"><i class="bi bi-clock me-1"></i>09:30 AM - 12:30 PM &bull; MCA Sem 4 &bull; Advanced Java</div>
+                        <div class="small text-muted"><i class="bi bi-door-open me-1"></i>Exam Hall 302 &bull; 60 Seats &bull; Invigilator Assigned</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5" id="features">
+    <div class="container py-4">
+        <div class="section-header">
+            <span class="section-badge">Core Capabilities</span>
+            <h2 class="section-title">Designed for Modern Higher Education</h2>
+            <p class="section-subtitle">Comprehensive automation tools built to tackle complex university examination timetables, faculty work hours, and multi-hall seating arrangements.</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Feature 1 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon-box"><i class="bi bi-magic"></i></div>
+                    <h5 class="feature-title">Automated Exam Scheduling</h5>
+                    <p class="feature-desc">Generate conflict-free exam timetables in seconds using constraint satisfaction algorithms that account for department batches, holidays, and student workloads.</p>
+                </div>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon-box"><i class="bi bi-person-check"></i></div>
+                    <h5 class="feature-title">Intelligent Invigilator Allocation</h5>
+                    <p class="feature-desc">Equitably distribute invigilation duties across faculty members, preventing consecutive shift fatigue while honoring individual availability and department caps.</p>
+                </div>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon-box"><i class="bi bi-exclamation-triangle"></i></div>
+                    <h5 class="feature-title">Examination Conflict Detection</h5>
+                    <p class="feature-desc">Real-time proactive diagnostic engine that flags room double-bookings, faculty overlapping duties, and student exam timetable collisions with one-click resolution.</p>
+                </div>
+            </div>
+
+            <!-- Feature 4 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon-box"><i class="bi bi-grid-3x3-gap"></i></div>
+                    <h5 class="feature-title">Student Seating Allocation</h5>
+                    <p class="feature-desc">Automate room seating arrangements with intelligent spacing protocols and roll-number interleaving to minimize academic dishonesty and maximize room capacity.</p>
+                </div>
+            </div>
+
+            <!-- Feature 5 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon-box"><i class="bi bi-calendar-week"></i></div>
+                    <h5 class="feature-title">Examination Timetable Management</h5>
+                    <p class="feature-desc">Publish, manage, and distribute interactive exam timetables filterable by department, course, and semester with instant notification alerts to affected faculty and students.</p>
+                </div>
+            </div>
+
+            <!-- Feature 6 -->
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon-box"><i class="bi bi-pie-chart"></i></div>
+                    <h5 class="feature-title">Reports and Analytics</h5>
+                    <p class="feature-desc">Export print-ready PDF examination rosters, room door charts, and Excel duty spreadsheets while tracking room utilization and faculty workload balance in real-time.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="py-5 bg-light border-top border-bottom" id="how-it-works">
+    <div class="container py-4">
+        <div class="section-header">
+            <span class="section-badge">Streamlined Workflow</span>
+            <h2 class="section-title">How SmartExam Works</h2>
+            <p class="section-subtitle">Four straightforward steps from initial semester data intake to published campus-wide examination schedules.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h6 class="fw-bold text-navy mb-2">Add Examination Details</h6>
+                    <p class="text-muted small mb-0">Input courses, student registrations, exam durations, and specify available campus examination halls.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h6 class="fw-bold text-navy mb-2">Generate Examination Schedules</h6>
+                    <p class="text-muted small mb-0">Run the automated scheduler to draft optimized time slots with zero exam overlap for enrolled students.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h6 class="fw-bold text-navy mb-2">Allocate Rooms & Invigilators</h6>
+                    <p class="text-muted small mb-0">Assign halls based on capacity requirements and allocate active faculty invigilators fairly.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h6 class="fw-bold text-navy mb-2">Publish Examination Timetables</h6>
+                    <p class="text-muted small mb-0">Notify departments, distribute digital schedules, and generate formal PDF printouts with one click.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- About Section -->
+<section class="about-section" id="about">
+    <div class="container">
+        <div class="row align-items-center gy-5">
+            <div class="col-lg-6">
+                <span class="section-badge">About SmartExam</span>
+                <h2 class="section-title">Empowering Academic Institutions With Next-Gen Automation</h2>
+                <p class="text-muted leading-relaxed mb-4">
+                    University examinations involve intricate logistics spanning thousands of students, hundreds of faculty members, and dozens of physical halls. Manual scheduling frequently results in room double-bookings, uneven duty burdens, and costly administrative errors.
+                </p>
+                <p class="text-muted leading-relaxed mb-4">
+                    <strong>SmartExam</strong> eliminates these bottlenecks. By leveraging robust database constraints, automated allocation heuristics, and role-based workspaces, SmartExam equips university administrators, coordinators, and faculty members with a unified single source of truth.
+                </p>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-check text-primary fs-4"></i>
+                            <div>
+                                <div class="fw-bold text-navy">Secure & Role-Based</div>
+                                <small class="text-muted">Strict Admin, Coordinator & Faculty boundaries</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-lightning-charge text-primary fs-4"></i>
+                            <div>
+                                <div class="fw-bold text-navy">High-Speed Scheduling</div>
+                                <small class="text-muted">Instant generation of semester schedules</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="about-highlight-box">
+                    <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3"><i class="bi bi-person-gear fs-3"></i></div>
+                    <div>
+                        <h6 class="fw-bold text-navy mb-1">Institutional Governance</h6>
+                        <p class="text-muted small mb-0">Complete oversight of departments, courses, user accounts, and immutable audit logging for administrative transparency.</p>
+                    </div>
+                </div>
+                <div class="about-highlight-box">
+                    <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3"><i class="bi bi-speedometer2 fs-3"></i></div>
+                    <div>
+                        <h6 class="fw-bold text-navy mb-1">Coordinator Command Hub</h6>
+                        <p class="text-muted small mb-0">Dedicated examination logistics workspace for room utilization tracking, conflict resolution, and seating generation.</p>
+                    </div>
+                </div>
+                <div class="about-highlight-box">
+                    <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3"><i class="bi bi-person-badge fs-3"></i></div>
+                    <div>
+                        <h6 class="fw-bold text-navy mb-1">Faculty Self-Service</h6>
+                        <p class="text-muted small mb-0">Clean dashboard for instructors to manage availability, confirm duty assignments, and access personalized exam rosters.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section class="py-5" id="contact">
+    <div class="container py-4">
+        <div class="contact-card">
+            <div class="row align-items-center gy-4">
+                <div class="col-lg-8">
+                    <span class="badge bg-white text-dark mb-2 px-3 py-1 fw-bold">Support & Inquiries</span>
+                    <h3 class="fw-bold mb-2">Ready to streamline your examination administration?</h3>
+                    <p class="text-light opacity-75 mb-0">Get in touch with the university examination committee or sign in to access your dashboard.</p>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a href="/login" class="btn btn-light text-navy fw-bold px-4 py-3 rounded-3 shadow">
+                        Access Portal <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="container">
+        <div class="row gy-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="footer-brand">
+                    <i class="bi bi-mortarboard-fill text-primary"></i> SmartExam
+                </div>
+                <p class="opacity-75 mb-3">Intelligent Examination Scheduling & Invigilation Management System designed for modern universities and colleges.</p>
+                <div class="text-muted small">Powered by Spring Boot & MySQL</div>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <h6 class="text-white fw-bold mb-3">Navigation</h6>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2"><a href="#home" class="footer-link">Home</a></li>
+                    <li class="mb-2"><a href="#features" class="footer-link">Features</a></li>
+                    <li class="mb-2"><a href="#how-it-works" class="footer-link">How It Works</a></li>
+                    <li class="mb-2"><a href="#about" class="footer-link">About</a></li>
+                    <li><a href="#contact" class="footer-link">Contact</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="d-flex flex-column">
+                    <h6 class="text-white fw-bold mb-3">User Portals</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><a href="/login" class="footer-link"><i class="bi bi-shield-lock me-1"></i> Administrator Login</a></li>
+                        <li class="mb-2"><a href="/login" class="footer-link"><i class="bi bi-calendar-check me-1"></i> Coordinator Login</a></li>
+                        <li class="mb-2"><a href="/login" class="footer-link"><i class="bi bi-person-badge me-1"></i> Faculty Member Login</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <h6 class="text-white fw-bold mb-3">Security & Compliance</h6>
+                <p class="opacity-75 small">Protected with BCrypt password hashing, session expiration protection, and strict role-based access control.</p>
+                <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 px-3 py-2">
+                    <i class="bi bi-lock-fill me-1"></i> SSL / TLS Encrypted
+                </span>
+            </div>
+        </div>
+        <div class="footer-bottom d-flex flex-wrap justify-content-between align-items-center">
+            <div>&copy; 2026 SmartExam. All rights reserved. Intelligent Examination Management System.</div>
+            <div class="d-flex gap-3">
+                <a href="#home" class="footer-link">Back to Top <i class="bi bi-arrow-up"></i></a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

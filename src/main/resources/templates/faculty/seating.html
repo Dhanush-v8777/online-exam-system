@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duty Room Seating Plan | SmartExam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/dashboard-common.css}">
+    <style>
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 14px;
+            padding: 20px;
+        }
+        .seat-card {
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .seat-card:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        .seat-num {
+            font-weight: 700;
+            color: #1e40af;
+            font-size: 0.95rem;
+        }
+        .student-reg {
+            font-size: 0.78rem;
+            font-family: monospace;
+            color: #0f172a;
+            font-weight: 600;
+        }
+        .student-name {
+            font-size: 0.75rem;
+            color: #475569;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{fragments/faculty-sidebar :: facultySidebar('seating')}"></div>
+
+<div class="main-wrapper">
+    <div th:replace="~{fragments/header :: topbar('Duty Room Seating Plan')}"></div>
+
+    <div class="page-content">
+        <!-- Error Notice -->
+        <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show no-print d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-shield-x"></i>
+            <span th:text="${errorMsg}">Access Denied</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Assigned Duty Exam Selector -->
+        <div class="card border-0 shadow-sm mb-4 no-print">
+            <div class="card-body p-3">
+                <form method="get" th:action="@{/faculty/seating}" class="row g-2 align-items-end">
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold text-navy">Select Assigned Duty Examination</label>
+                        <select name="examId" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">-- Choose Assigned Exam --</option>
+                            <option th:each="ex : ${assignedExams}" th:value="${ex.id}"
+                                    th:text="${ex.examName + ' (' + #temporals.format(ex.examDate, 'dd MMM yyyy') + ' | ' + (ex.examRoom != null ? ex.examRoom.roomNumber : 'TBA') + ')'}"
+                                    th:selected="${selectedExam != null and ex.id == selectedExam.id}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary w-50">View Seating</button>
+                        <button th:if="${selectedExam != null}" type="button" onclick="window.print()" class="btn btn-sm btn-outline-primary w-50">
+                            <i class="bi bi-printer me-1"></i> Print Chart
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Seating Display Card -->
+        <div class="content-card" th:if="${selectedExam != null}">
+            <!-- Print Header -->
+            <div class="print-only p-3 mb-2 border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="fw-bold text-navy mb-0">SmartExam - Invigilator Seating Roster</h3>
+                        <div class="text-muted small">Invigilator: <span th:text="${faculty.fullName}">Faculty</span></div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold" th:text="${selectedExam.examName}">Exam Name</div>
+                        <div class="small text-muted" th:text="'Room: ' + (${selectedExam.examRoom != null ? selectedExam.examRoom.roomNumber : 'TBD'}) + ' | Date: ' + ${#temporals.format(selectedExam.examDate, 'dd MMM yyyy')}">Room & Date</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-card-header">
+                <div>
+                    <h6 class="mb-0 fw-bold text-navy" th:text="${selectedExam.examName}">Examination</h6>
+                    <small class="text-muted" th:text="${'Room: ' + (selectedExam.examRoom != null ? selectedExam.examRoom.roomNumber : 'TBA') + ' | Date: ' + #temporals.format(selectedExam.examDate, 'dd MMM yyyy') + ' | Time: ' + #temporals.format(selectedExam.startTime, 'HH:mm')}"></small>
+                </div>
+                <span class="badge bg-primary px-3 py-2" th:text="${(allocations != null ? #lists.size(allocations) : 0) + ' Students Seated'}">0 Students Seated</span>
+            </div>
+
+            <!-- Seating Grid -->
+            <div class="seat-grid" th:if="${allocations != null and not #lists.isEmpty(allocations)}">
+                <div th:each="s : ${allocations}" class="seat-card">
+                    <div class="seat-num" th:text="${s.seatNumber}">S-01</div>
+                    <div class="student-reg mt-1" th:text="${s.student?.registerNumber}">REG001</div>
+                    <div class="student-name mt-1" th:text="${s.student?.fullName}">Student Name</div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div th:if="${allocations == null or #lists.isEmpty(allocations)}" class="text-center py-5 text-muted">
+                <i class="bi bi-grid-3x3 text-secondary fs-1 d-block mb-2"></i>
+                <h6 class="fw-bold text-navy">No Seating Plan Generated Yet</h6>
+                <p class="text-muted small mb-0">The examination coordinator has not published a seating arrangement for this session yet.</p>
+            </div>
+        </div>
+
+        <!-- No Duty Selected State -->
+        <div th:if="${selectedExam == null}" class="text-center py-5 text-muted bg-white rounded-3 border">
+            <i class="bi bi-calendar-x fs-1 text-primary d-block mb-2"></i>
+            <h6 class="fw-bold text-navy">No Duty Examination Selected</h6>
+            <p class="text-muted small mb-0">Select one of your assigned invigilation duties above to inspect room seating details.</p>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

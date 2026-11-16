@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Examination Hall Seating Arrangement | SmartExam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/dashboard-common.css}">
+
+    <style>
+        /* ==========================================================
+           EXAMINATION HALL VISUAL SEATING PLAN STYLES
+           ========================================================== */
+        .exam-hall-container {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+            padding: 30px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+
+        /* Front of Exam Hall */
+        .hall-front {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 32px;
+            position: relative;
+        }
+
+        .board-banner {
+            background: #0f172a;
+            color: #38bdf8;
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 8px 36px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .podium-indicator {
+            margin-top: 10px;
+            background: #f1f5f9;
+            border: 1.5px solid #cbd5e1;
+            color: #475569;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 4px 20px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Section Column Headers */
+        .hall-columns-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .col-header-spacer {
+            width: 70px;
+            flex-shrink: 0;
+        }
+
+        .section-header-box {
+            width: 370px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #1e40af;
+            background: #eff6ff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #bfdbfe;
+        }
+
+        .aisle-header-box {
+            width: 110px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #64748b;
+        }
+
+        /* Hall Rows & Grid Structure */
+        .hall-rows-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .hall-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .row-label {
+            width: 70px;
+            flex-shrink: 0;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .row-label-right {
+            width: 70px;
+            flex-shrink: 0;
+            text-align: right;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .desk-section {
+            display: flex;
+            gap: 16px;
+            width: 370px;
+            justify-content: center;
+        }
+
+        /* Central Aisle (Walkway) */
+        .central-aisle {
+            width: 110px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .aisle-line {
+            width: 2px;
+            height: 100%;
+            background: repeating-linear-gradient(to bottom, #cbd5e1 0, #cbd5e1 6px, transparent 6px, transparent 12px);
+            position: absolute;
+        }
+
+        .aisle-badge {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            color: #94a3b8;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 3px 8px;
+            border-radius: 12px;
+            z-index: 1;
+            white-space: nowrap;
+        }
+
+        /* Rectangular Desk Styling */
+        .desk-rect {
+            width: 175px;
+            height: 94px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 8px 10px;
+            position: relative;
+            box-sizing: border-box;
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* Allocated Blue Desk (Matches reference image) */
+        .desk-rect.desk-occupied {
+            background: #dbeafe;
+            border: 2.5px solid #1d4ed8;
+            box-shadow: 0 3px 8px rgba(29, 78, 216, 0.15);
+        }
+
+        .desk-rect.desk-occupied:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(29, 78, 216, 0.22);
+            border-color: #1e3a8a;
+        }
+
+        /* Available / Vacant Desk */
+        .desk-rect.desk-available {
+            background: #f8fafc;
+            border: 2px dashed #94a3b8;
+        }
+
+        .desk-rect.desk-available:hover {
+            background: #f1f5f9;
+            border-color: #64748b;
+        }
+
+        /* Desk Details */
+        .desk-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(29, 78, 216, 0.15);
+            padding-bottom: 4px;
+        }
+
+        .desk-available .desk-top {
+            border-bottom-color: #e2e8f0;
+        }
+
+        .seat-badge {
+            font-weight: 800;
+            font-size: 0.8rem;
+            color: #1e3a8a;
+            letter-spacing: 0.02em;
+        }
+
+        .seat-badge-avail {
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .desk-status-icon {
+            font-size: 0.75rem;
+        }
+
+        .student-name {
+            font-weight: 700;
+            font-size: 0.82rem;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+            margin: 4px 0 2px;
+        }
+
+        .student-reg {
+            font-size: 0.74rem;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-weight: 600;
+            color: #1e40af;
+            letter-spacing: 0.03em;
+        }
+
+        .vacant-label {
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            gap: 4px;
+        }
+
+        /* Hall Legend */
+        .hall-legend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 28px;
+            padding-top: 18px;
+            border-top: 1px solid #f1f5f9;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .legend-swatch {
+            width: 18px;
+            height: 14px;
+            border-radius: 3px;
+        }
+
+        .legend-swatch.swatch-occupied {
+            background: #dbeafe;
+            border: 2px solid #1d4ed8;
+        }
+
+        .legend-swatch.swatch-avail {
+            background: #f8fafc;
+            border: 2px dashed #94a3b8;
+        }
+
+        /* ==========================================================
+           PRINT SPECIFIC STYLES
+           ========================================================== */
+        .print-only {
+            display: none;
+        }
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 11pt !important;
+            }
+
+            /* Completely hide all extraneous web chrome */
+            .sidebar,
+            .topbar,
+            .no-print,
+            header,
+            nav,
+            .btn,
+            .alert,
+            form {
+                display: none !important;
+            }
+
+            .main-wrapper {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+
+            .page-content {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .content-card {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            .exam-hall-container {
+                border: 1.5px solid #000000 !important;
+                box-shadow: none !important;
+                padding: 16px !important;
+            }
+
+            .board-banner {
+                background: #000000 !important;
+                color: #ffffff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .desk-rect.desk-occupied {
+                background: #e0f2fe !important;
+                border: 2px solid #000000 !important;
+                box-shadow: none !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                page-break-inside: avoid;
+            }
+
+            .desk-rect.desk-available {
+                background: #ffffff !important;
+                border: 1.5px dashed #555555 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                page-break-inside: avoid;
+            }
+
+            .print-footer {
+                display: flex !important;
+                justify-content: space-between;
+                margin-top: 24px;
+                padding-top: 12px;
+                border-top: 1px solid #333;
+                font-size: 9pt;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Dynamic Role Sidebar -->
+<div th:replace="~{fragments/layout :: roleSidebar('seating')}"></div>
+
+<div class="main-wrapper">
+    <!-- Topbar Header -->
+    <div th:replace="~{fragments/header :: topbar('Student Room Seating Plan')}"></div>
+
+    <div class="page-content">
+        <!-- Notification Banners -->
+        <div th:if="${successMsg}" class="alert alert-success alert-dismissible fade show no-print d-flex align-items-center gap-2 mb-3" role="alert">
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <span th:text="${successMsg}">Success</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show no-print d-flex align-items-center gap-2 mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            <span th:text="${errorMsg}">Error</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- ==========================================================
+             COORDINATOR CONTROLS CARD
+             ========================================================== -->
+        <div class="card border-0 shadow-sm mb-4 no-print">
+            <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                <div>
+                    <h6 class="fw-bold mb-0 text-navy"><i class="bi bi-sliders me-2 text-primary"></i>Examination Hall Seating Controls</h6>
+                    <small class="text-muted">Select examination session, assign hall room, and generate or save seating</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <button th:if="${selectedExam != null}" type="button" onclick="window.print()" class="btn btn-sm btn-dark px-3 shadow-sm">
+                        <i class="bi bi-printer me-1"></i> Print Seating Plan
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <!-- Primary POST Form for Seating Operations with explicit CSRF token -->
+                <form id="seatingForm" th:action="@{/admin/seating/generate}" method="post">
+                    <!-- Standard CSRF Token -->
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+                    <div class="row g-3 align-items-end">
+                        <!-- 1. Select Examination -->
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold text-navy">
+                                <i class="bi bi-calendar3 text-primary me-1"></i> 1. Select Examination:
+                            </label>
+                            <select name="examId" id="examSelect" class="form-select form-select-sm" onchange="onExamSelectChange(this.value)">
+                                <option value="">-- Choose Examination Session --</option>
+                                <option th:each="ex : ${examinations}" th:value="${ex.id}"
+                                        th:text="${ex.examName + ' (' + #temporals.format(ex.examDate, 'dd MMM yyyy') + ' | ' + (ex.examRoom != null ? ex.examRoom.roomNumber : 'No Room') + ')'}"
+                                        th:selected="${ex.id == selectedExamId}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- 2. Select Examination Room(s) -->
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-navy">
+                                <i class="bi bi-door-open text-primary me-1"></i> 2. Examination Room(s):
+                            </label>
+                            <select name="roomIds" id="roomSelect" class="form-select form-select-sm" multiple size="3" title="Hold Ctrl/Cmd to select multiple rooms">
+                                <option th:each="rm : ${rooms}" th:value="${rm.id}"
+                                        th:text="${rm.roomNumber + ' - ' + rm.building + ' (Capacity: ' + rm.capacity + ' desks)'}"
+                                        th:selected="${(allocatedRooms != null and #lists.contains(allocatedRooms, rm)) or (selectedRoom != null and rm.id == selectedRoom.id)}">
+                                </option>
+                            </select>
+                            <div class="form-text" style="font-size:0.71rem; color:#64748b;">
+                                <i class="bi bi-info-circle me-1"></i>Hold <kbd>Ctrl</kbd> to select multiple rooms for large exams
+                            </div>
+                        </div>
+
+                        <!-- 3. Test Student Limit Selector (Supports QA testing with 4, 16, 20, or All) -->
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold text-navy">
+                                <i class="bi bi-people text-primary me-1"></i> Student Count (Testing):
+                            </label>
+                            <select name="studentLimit" id="studentLimitSelect" class="form-select form-select-sm">
+                                <option value="">All Department Students</option>
+                                <option value="4">4 Students (1 Row Seated, 3 Rows Avail)</option>
+                                <option value="16">16 Students (Exact 4x4 Full Hall)</option>
+                                <option value="20">20 Students (5 Rows - Dynamic Expansion)</option>
+                                <option value="24">24 Students (6 Rows - Large Hall)</option>
+                            </select>
+                        </div>
+
+                        <!-- Action Toolbar -->
+                        <div class="col-12 pt-2 border-top d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <!-- View Seating Plan Button -->
+                                <button type="button" class="btn btn-sm btn-outline-primary px-3" onclick="viewSeatingPlan()">
+                                    <i class="bi bi-eye me-1"></i> View Seating Plan
+                                </button>
+
+                                <!-- Generate Seating Arrangement Button (Submits POST to /admin/seating/generate) -->
+                                <button type="submit" id="btnGenerate" class="btn btn-sm btn-primary px-3 shadow-sm" style="background:#2563eb; border:none;" onclick="document.getElementById('seatingForm').action='/admin/seating/generate'">
+                                    <i class="bi bi-magic me-1"></i> Generate Seating Arrangement
+                                </button>
+
+                                <!-- Save Seating Arrangement Button (Submits POST to /admin/seating/save) -->
+                                <button type="button" id="btnSave" class="btn btn-sm btn-success px-3 shadow-sm" onclick="saveSeatingPlan()">
+                                    <i class="bi bi-check2-circle me-1"></i> Save Seating Arrangement
+                                </button>
+                            </div>
+
+                            <div th:if="${selectedExam != null}" class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary px-3 py-2 fs-6">
+                                    <i class="bi bi-person-fill-check me-1"></i>
+                                    <span th:text="${hall.allocatedCount}">0</span> Seated
+                                </span>
+                                <span class="badge bg-secondary px-3 py-2 fs-6">
+                                    <i class="bi bi-dash-circle me-1"></i>
+                                    <span th:text="${hall.availableCount}">0</span> Available
+                                </span>
+                                <span class="badge bg-dark px-3 py-2 fs-6">
+                                    <i class="bi bi-grid-3x3 me-1"></i>
+                                    <span th:text="${hall.totalDesks + ' Desks (' + hall.totalRows + ' Rows)'}">16 Desks</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ==========================================================
+             SELECTED EXAMINATION SEATING PLAN
+             ========================================================== -->
+        <div th:if="${selectedExam != null}">
+
+            <!-- Examination Details Banner -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white no-print">
+                <div class="card-body p-3">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-3">
+                            <span class="text-muted small text-uppercase fw-bold d-block" style="font-size:0.7rem;">Examination Name</span>
+                            <span class="fw-bold text-navy" th:text="${selectedExam.examName}">Examination Name</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1" style="font-size:0.7rem;" th:text="${selectedExam.examType != null ? selectedExam.examType.displayName : selectedExam.examinationDisplayName}">End-Semester Examination</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted small text-uppercase fw-bold d-block" style="font-size:0.7rem;">Course &amp; Semester</span>
+                            <span class="fw-semibold text-dark" th:text="${(selectedExam.department != null ? selectedExam.department.deptName + ' (' + selectedExam.department.deptCode + ')' : 'N/A') + ' - Semester ' + selectedExam.semester}">Course Sem</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted small text-uppercase fw-bold d-block" style="font-size:0.7rem;">Subject &amp; Code</span>
+                            <span class="fw-semibold text-dark" th:text="${selectedExam.subject != null ? selectedExam.subject.subjectName + ' (' + selectedExam.subject.subjectCode + ')' : 'N/A'}">Subject</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted small text-uppercase fw-bold d-block" style="font-size:0.7rem;">Date, Time &amp; Hall</span>
+                            <span class="fw-semibold text-primary" th:text="${#temporals.format(selectedExam.examDate, 'dd MMM yyyy')}">Date</span>
+                            <small class="text-muted d-block" th:text="${selectedExam.startTime + ' - ' + selectedExam.endTime + ' | Room: ' + (selectedRoom != null ? selectedRoom.roomNumber : 'Unallocated')}">Time Room</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seating Summary Metrics Cards (Prominent 5-card dynamic MySQL statistics overview) -->
+            <div class="row g-3 mb-4 no-print">
+                <!-- 1. Total Eligible Students -->
+                <div class="col-12 col-sm-6 col-lg">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-primary h-100">
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.72rem;">Total Eligible Students</div>
+                        <div class="d-flex align-items-center justify-content-between mt-1">
+                            <span class="fs-4 fw-bold text-navy" th:text="${hall.totalEligibleStudents}">0</span>
+                            <i class="bi bi-people-fill text-primary fs-3"></i>
+                        </div>
+                        <small class="text-muted" style="font-size:0.72rem;">Department &amp; Semester cohort</small>
+                    </div>
+                </div>
+                <!-- 2. Total Allocated Students -->
+                <div class="col-12 col-sm-6 col-lg">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-success h-100">
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.72rem;">Total Allocated Students</div>
+                        <div class="d-flex align-items-center justify-content-between mt-1">
+                            <span class="fs-4 fw-bold text-success" th:text="${hall.totalAllocatedStudents}">0</span>
+                            <i class="bi bi-person-check-fill text-success fs-3"></i>
+                        </div>
+                        <small class="text-muted" style="font-size:0.72rem;">Unique seated records</small>
+                    </div>
+                </div>
+                <!-- 3. Remaining Unallocated Students -->
+                <div class="col-12 col-sm-6 col-lg">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-warning h-100">
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.72rem;">Remaining Unallocated</div>
+                        <div class="d-flex align-items-center justify-content-between mt-1">
+                            <span class="fs-4 fw-bold" th:classappend="${hall.remainingUnallocated > 0 ? 'text-danger' : 'text-secondary'}" th:text="${hall.remainingUnallocated}">0</span>
+                            <i class="bi bi-person-dash-fill text-warning fs-3"></i>
+                        </div>
+                        <small class="text-muted" style="font-size:0.72rem;">Awaiting room desks</small>
+                    </div>
+                </div>
+                <!-- 4. Available Room Capacity -->
+                <div class="col-12 col-sm-6 col-lg">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-info h-100">
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.72rem;">Available Room Capacity</div>
+                        <div class="d-flex align-items-center justify-content-between mt-1">
+                            <span class="fs-4 fw-bold text-navy" th:text="${hall.totalRoomCapacity}">0</span>
+                            <i class="bi bi-door-open-fill text-info fs-3"></i>
+                        </div>
+                        <small class="text-muted" style="font-size:0.72rem;">Assigned hall capacity</small>
+                    </div>
+                </div>
+                <!-- 5. Vacant Desks -->
+                <div class="col-12 col-sm-6 col-lg">
+                    <div class="card border-0 shadow-sm rounded-3 p-3 bg-white border-start border-4 border-secondary h-100">
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.72rem;">Vacant Desks</div>
+                        <div class="d-flex align-items-center justify-content-between mt-1">
+                            <span class="fs-4 fw-bold text-teal" style="color:#0d9488;" th:text="${hall.vacantDesks}">0</span>
+                            <i class="bi bi-check2-square fs-3" style="color:#0d9488;"></i>
+                        </div>
+                        <small class="text-muted" style="font-size:0.72rem;">Capacity - Seated (&ge; 0)</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multi-Room Switcher Tabs (Visible when seating spans multiple rooms) -->
+            <div th:if="${allocatedRooms != null and allocatedRooms.size() > 1}" class="mb-3 d-flex flex-wrap align-items-center justify-content-between bg-white p-3 rounded-3 shadow-sm border no-print">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="fw-bold text-navy me-2"><i class="bi bi-buildings text-primary me-1"></i>Allocated Examination Halls:</span>
+                    <ul class="nav nav-pills gap-2 mb-0">
+                        <li class="nav-item" th:each="r : ${allocatedRooms}">
+                            <a class="nav-link py-1 px-3 fw-bold" 
+                               th:classappend="${selectedRoom != null and r.id == selectedRoom.id ? 'active bg-primary' : 'bg-light text-dark border'}"
+                               th:href="@{/admin/seating(examId=${selectedExam.id}, viewRoomId=${r.id})}">
+                                <i class="bi bi-door-open me-1"></i>
+                                <span th:text="${r.roomNumber + ' (' + r.capacity + ' desks)'}">LH-101</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="text-muted small">
+                    Viewing Room: <strong class="text-navy" th:text="${selectedRoom != null ? selectedRoom.roomNumber : ''}">LH-101</strong>
+                    (<span th:text="${hall.allocatedCount}">0</span> seated in this hall)
+                </div>
+            </div>
+
+            <!-- Official Print Header (Only visible in Print / PDF export) -->
+            <div class="print-only mb-4 pb-3 border-bottom border-2 border-dark">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h2 class="fw-bold mb-1" style="color:#0f172a;">SmartExam - Examination Hall Seating Arrangement</h2>
+                        <div class="fw-semibold text-secondary">Official Institutional Examination Seating Chart & Student Roster</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold fs-5 text-primary" th:text="${selectedExam.examName}">Midterm Examination</div>
+                        <div class="text-muted small">Generated on: <span th:text="${#temporals.format(#temporals.createNow(), 'dd MMM yyyy, HH:mm')}">Date</span></div>
+                    </div>
+                </div>
+
+                <div class="row g-2 mt-3 pt-2 border-top border-secondary-subtle">
+                    <div class="col-3">
+                        <small class="text-muted d-block text-uppercase fw-bold" style="font-size:0.65rem;">Subject</small>
+                        <strong th:text="${selectedExam.subject?.subjectName + ' (' + selectedExam.subject?.subjectCode + ')'}">Subject</strong>
+                    </div>
+                    <div class="col-3">
+                        <small class="text-muted d-block text-uppercase fw-bold" style="font-size:0.65rem;">Date & Time</small>
+                        <strong th:text="${#temporals.format(selectedExam.examDate, 'dd MMM yyyy') + ' | ' + #temporals.format(selectedExam.startTime, 'HH:mm')}">Date & Time</strong>
+                    </div>
+                    <div class="col-3">
+                        <small class="text-muted d-block text-uppercase fw-bold" style="font-size:0.65rem;">Room / Hall</small>
+                        <strong th:text="${(selectedRoom != null ? selectedRoom.roomNumber + ' (' + selectedRoom.building + ')' : 'Main Hall')}">Room</strong>
+                    </div>
+                    <div class="col-3 text-end">
+                        <small class="text-muted d-block text-uppercase fw-bold" style="font-size:0.65rem;">Summary</small>
+                        <strong th:text="${hall.allocatedCount + ' Students Seated / ' + hall.totalDesks + ' Total Desks'}">16 Desks</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Examination Hall Diagram -->
+            <div class="exam-hall-container">
+
+                <!-- Front of Hall: Blackboard & Teacher Station -->
+                <div class="hall-front">
+                    <div class="board-banner">
+                        <i class="bi bi-easel2-fill"></i>
+                        FRONT OF EXAMINATION HALL &bull; WHITEBOARD
+                        <i class="bi bi-easel2-fill"></i>
+                    </div>
+                    <div class="podium-indicator">
+                        <i class="bi bi-person-workspace me-1"></i> Invigilator / Proctor Station
+                    </div>
+                </div>
+
+                <!-- Section Headers (Left Section | Central Aisle | Right Section) -->
+                <div class="hall-columns-header">
+                    <div class="col-header-spacer"></div>
+                    <div class="section-header-box">
+                        <i class="bi bi-layout-split me-1"></i> LEFT SECTION (Columns 1 &amp; 2)
+                    </div>
+                    <div class="aisle-header-box">
+                        <i class="bi bi-arrows-vertical text-secondary me-1"></i> AISLE
+                    </div>
+                    <div class="section-header-box">
+                        <i class="bi bi-layout-split me-1"></i> RIGHT SECTION (Columns 3 &amp; 4)
+                    </div>
+                    <div class="col-header-spacer"></div>
+                </div>
+
+                <!-- Hall Desks: 4-Column Layout (2 Left, Wide Central Aisle, 2 Right) -->
+                <div class="hall-rows-wrapper">
+                    <div th:each="row : ${seatingRows}" class="hall-row">
+
+                        <!-- Row Indicator (Left) -->
+                        <div class="row-label">
+                            <i class="bi bi-chevron-right text-primary"></i>
+                            <span th:text="'Row ' + ${row.rowNumber}">Row 1</span>
+                        </div>
+
+                        <!-- Left Section (Columns 1 & 2) -->
+                        <div class="desk-section">
+                            <!-- Desk 1 (Column 1) -->
+                            <div class="desk-rect" th:classappend="${row.leftDesk1.allocated ? 'desk-occupied' : 'desk-available'}">
+                                <div class="desk-top">
+                                    <span th:if="${row.leftDesk1.allocated}" class="seat-badge" th:text="${row.leftDesk1.seatNumber}">S-01</span>
+                                    <span th:unless="${row.leftDesk1.allocated}" class="seat-badge-avail" th:text="${row.leftDesk1.seatNumber}">S-01</span>
+                                    <i th:if="${row.leftDesk1.allocated}" class="bi bi-check-circle-fill text-primary desk-status-icon"></i>
+                                    <i th:unless="${row.leftDesk1.allocated}" class="bi bi-circle text-muted desk-status-icon"></i>
+                                </div>
+                                <div th:if="${row.leftDesk1.allocated}">
+                                    <div class="student-name" th:text="${row.leftDesk1.studentName}">Student Name</div>
+                                    <div class="student-reg" th:text="${row.leftDesk1.registerNumber}">REG-001</div>
+                                </div>
+                                <div th:unless="${row.leftDesk1.allocated}" class="vacant-label">
+                                    <i class="bi bi-check2"></i> Available
+                                </div>
+                            </div>
+
+                            <!-- Desk 2 (Column 2) -->
+                            <div class="desk-rect" th:classappend="${row.leftDesk2.allocated ? 'desk-occupied' : 'desk-available'}">
+                                <div class="desk-top">
+                                    <span th:if="${row.leftDesk2.allocated}" class="seat-badge" th:text="${row.leftDesk2.seatNumber}">S-02</span>
+                                    <span th:unless="${row.leftDesk2.allocated}" class="seat-badge-avail" th:text="${row.leftDesk2.seatNumber}">S-02</span>
+                                    <i th:if="${row.leftDesk2.allocated}" class="bi bi-check-circle-fill text-primary desk-status-icon"></i>
+                                    <i th:unless="${row.leftDesk2.allocated}" class="bi bi-circle text-muted desk-status-icon"></i>
+                                </div>
+                                <div th:if="${row.leftDesk2.allocated}">
+                                    <div class="student-name" th:text="${row.leftDesk2.studentName}">Student Name</div>
+                                    <div class="student-reg" th:text="${row.leftDesk2.registerNumber}">REG-002</div>
+                                </div>
+                                <div th:unless="${row.leftDesk2.allocated}" class="vacant-label">
+                                    <i class="bi bi-check2"></i> Available
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Central Aisle (Walkway) -->
+                        <div class="central-aisle">
+                            <div class="aisle-line"></div>
+                            <span class="aisle-badge"><i class="bi bi-arrow-down-up me-1"></i>Aisle</span>
+                        </div>
+
+                        <!-- Right Section (Columns 3 & 4) -->
+                        <div class="desk-section">
+                            <!-- Desk 3 (Column 3) -->
+                            <div class="desk-rect" th:classappend="${row.rightDesk1.allocated ? 'desk-occupied' : 'desk-available'}">
+                                <div class="desk-top">
+                                    <span th:if="${row.rightDesk1.allocated}" class="seat-badge" th:text="${row.rightDesk1.seatNumber}">S-03</span>
+                                    <span th:unless="${row.rightDesk1.allocated}" class="seat-badge-avail" th:text="${row.rightDesk1.seatNumber}">S-03</span>
+                                    <i th:if="${row.rightDesk1.allocated}" class="bi bi-check-circle-fill text-primary desk-status-icon"></i>
+                                    <i th:unless="${row.rightDesk1.allocated}" class="bi bi-circle text-muted desk-status-icon"></i>
+                                </div>
+                                <div th:if="${row.rightDesk1.allocated}">
+                                    <div class="student-name" th:text="${row.rightDesk1.studentName}">Student Name</div>
+                                    <div class="student-reg" th:text="${row.rightDesk1.registerNumber}">REG-003</div>
+                                </div>
+                                <div th:unless="${row.rightDesk1.allocated}" class="vacant-label">
+                                    <i class="bi bi-check2"></i> Available
+                                </div>
+                            </div>
+
+                            <!-- Desk 4 (Column 4) -->
+                            <div class="desk-rect" th:classappend="${row.rightDesk2.allocated ? 'desk-occupied' : 'desk-available'}">
+                                <div class="desk-top">
+                                    <span th:if="${row.rightDesk2.allocated}" class="seat-badge" th:text="${row.rightDesk2.seatNumber}">S-04</span>
+                                    <span th:unless="${row.rightDesk2.allocated}" class="seat-badge-avail" th:text="${row.rightDesk2.seatNumber}">S-04</span>
+                                    <i th:if="${row.rightDesk2.allocated}" class="bi bi-check-circle-fill text-primary desk-status-icon"></i>
+                                    <i th:unless="${row.rightDesk2.allocated}" class="bi bi-circle text-muted desk-status-icon"></i>
+                                </div>
+                                <div th:if="${row.rightDesk2.allocated}">
+                                    <div class="student-name" th:text="${row.rightDesk2.studentName}">Student Name</div>
+                                    <div class="student-reg" th:text="${row.rightDesk2.registerNumber}">REG-004</div>
+                                </div>
+                                <div th:unless="${row.rightDesk2.allocated}" class="vacant-label">
+                                    <i class="bi bi-check2"></i> Available
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row Indicator (Right) -->
+                        <div class="row-label-right" th:text="'Row ' + ${row.rowNumber}">Row 1</div>
+                    </div>
+                </div>
+
+                <!-- Visual Hall Legend -->
+                <div class="hall-legend">
+                    <div class="legend-item">
+                        <span class="legend-swatch swatch-occupied"></span>
+                        <span class="text-navy">Allocated Desk (Student Seated)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-swatch swatch-avail"></span>
+                        <span class="text-muted">Available Desk (Vacant)</span>
+                    </div>
+                    <div class="legend-item">
+                        <i class="bi bi-arrows-vertical text-secondary"></i>
+                        <span class="text-muted">Central Walkway Aisle</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: Student Seating Allocation Register Table -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4 bg-white">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="fw-bold mb-0 text-navy"><i class="bi bi-list-check me-2 text-primary"></i>Student Seating Allocation Register (<span th:text="${hall.totalAllocatedStudents}">0</span> Students Seated)</h6>
+                        <small class="text-muted">Complete alphabetical seat assignments for this examination session</small>
+                    </div>
+                    <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-dark no-print">
+                        <i class="bi bi-printer me-1"></i> Print Register
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em;">
+                                    <th>#</th>
+                                    <th>Seat Number</th>
+                                    <th>Register Number</th>
+                                    <th>Student Full Name</th>
+                                    <th>Course &amp; Semester</th>
+                                    <th>Curriculum Subject</th>
+                                    <th>Examination Hall / Room</th>
+                                    <th>Examination Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="sa, stat : ${allocations}">
+                                    <td class="text-muted small" th:text="${stat.count}">1</td>
+                                    <td>
+                                        <span class="badge bg-primary px-2 py-1 fs-6 font-monospace" th:text="${sa.seatNumber}">101-S01</span>
+                                    </td>
+                                    <td class="fw-bold text-navy font-monospace" th:text="${sa.student?.registerNumber}">23MCA01</td>
+                                    <td class="fw-semibold text-dark" th:text="${sa.student?.fullName}">Student Name</td>
+                                    <td>
+                                        <span class="badge bg-light text-primary border" th:text="${sa.student?.department?.deptCode}">MCA</span>
+                                        <small class="text-muted" th:text="'Sem ' + ${sa.student?.semester}">Sem 3</small>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold text-dark small" th:text="${selectedExam.subject?.subjectName}">Subject Name</div>
+                                        <small class="text-muted" th:text="${selectedExam.subject?.subjectCode}"></small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border" th:text="${sa.examRoom?.roomNumber}">Room 101</span>
+                                        <small class="text-muted d-block" th:text="${sa.examRoom?.building}"></small>
+                                    </td>
+                                    <td class="small" th:text="${#temporals.format(selectedExam.examDate, 'dd MMM yyyy')}">Date</td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(allocations)}">
+                                    <td colspan="8" class="text-center py-4 text-muted">
+                                        <i class="bi bi-grid-3x3 fs-2 d-block mb-1 text-secondary"></i>
+                                        Seating allocation has not been generated yet for this examination.
+                                        <div class="mt-2 no-print">
+                                            <form th:action="@{/admin/seating/generate}" method="post" class="d-inline">
+                                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                                <input type="hidden" name="examId" th:value="${selectedExam.id}">
+                                                <button type="submit" class="btn btn-sm btn-primary">
+                                                    <i class="bi bi-magic me-1"></i> Generate Seating Plan Now
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Print Footer -->
+            <div class="print-only print-footer">
+                <div>SmartExam &bull; Intelligent Examination Scheduling &amp; Invigilation Management</div>
+                <div>Invigilator Signature: ___________________________</div>
+            </div>
+
+        </div>
+
+        <!-- Empty State when No Exam Selected -->
+        <div th:if="${selectedExam == null}" class="text-center py-5 text-muted bg-white rounded-3 border">
+            <i class="bi bi-arrow-up-circle fs-1 text-primary d-block mb-2"></i>
+            <h5 class="fw-bold text-navy">No Examination Selected</h5>
+            <p class="text-muted small mb-0">Please choose a scheduled examination session from the dropdown above to view or generate its examination hall seating plan.</p>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function onExamSelectChange(examId) {
+        if (examId) {
+            window.location.href = '/admin/seating?examId=' + encodeURIComponent(examId);
+        } else {
+            window.location.href = '/admin/seating';
+        }
+    }
+
+    function viewSeatingPlan() {
+        const examId = document.getElementById('examSelect').value;
+        const roomSelect = document.getElementById('roomSelect');
+        if (!examId) {
+            alert('Please select an examination session first.');
+            return;
+        }
+        let url = '/admin/seating?examId=' + encodeURIComponent(examId);
+        if (roomSelect) {
+            const selected = Array.from(roomSelect.selectedOptions).map(o => o.value).filter(Boolean);
+            if (selected.length > 0) {
+                url += '&roomId=' + encodeURIComponent(selected[0]);
+            }
+        }
+        window.location.href = url;
+    }
+
+    function saveSeatingPlan() {
+        const form = document.getElementById('seatingForm');
+        const examId = document.getElementById('examSelect').value;
+        if (!examId) {
+            alert('Please select an examination session before saving.');
+            return;
+        }
+        form.action = '/admin/seating/save';
+        form.submit();
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

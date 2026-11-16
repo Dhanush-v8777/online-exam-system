@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examination Form | SmartExam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --navy: #0f172a; --blue: #2563eb; --sidebar-width: 260px; }
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f1f5f9; color: #1e293b; margin: 0; }
+        .sidebar { position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100vh; background: var(--navy); z-index: 1000; display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar-brand { padding: 22px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-brand h4 { color: #fff; font-weight: 700; font-size: 1.15rem; margin: 0; }
+        .sidebar-brand p { color: #94a3b8; font-size: 0.72rem; margin: 2px 0 0; }
+        .sidebar-nav { padding: 14px 0; flex: 1; }
+        .sidebar-section { padding: 8px 20px 4px; color: #64748b; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
+        .sidebar-nav .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 500; border-left: 3px solid transparent; }
+        .sidebar-nav .nav-link.active { color: #fff; background: rgba(37,99,235,0.18); border-left-color: var(--blue); font-weight: 600; }
+        .sidebar-nav .nav-link i { font-size: 1.05rem; width: 20px; }
+        .main-wrapper { margin-left: var(--sidebar-width); min-height: 100vh; display: flex; flex-direction: column; }
+        .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar-title { font-size: 1.05rem; font-weight: 600; color: var(--navy); }
+        .page-content { padding: 26px 28px; flex: 1; }
+        .form-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding: 28px; max-width: 760px; }
+        .form-label { font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .btn-smart-primary { background: #2563eb; color: #fff; border-radius: 8px; font-weight: 500; font-size: 0.85rem; padding: 9px 20px; border: none; }
+    </style>
+    <link rel="stylesheet" th:href="@{/css/dashboard-common.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: roleSidebar('examinations')}"></div>
+
+<div class="main-wrapper">
+    <div th:replace="~{fragments/header :: topbar(${pageTitle})}"></div>
+
+    <div class="page-content">
+        <div class="d-flex justify-content-between align-items-center mb-3" style="max-width: 760px;">
+            <h5 class="fw-bold mb-0 text-navy" th:text="${examination.id == null ? 'Schedule Examination' : 'Edit Examination Session'}">Examination</h5>
+            <a href="/admin/examinations" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back to List</a>
+        </div>
+
+        <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show mb-3" role="alert" style="max-width: 760px;">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${errorMsg}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="form-card">
+            <form th:action="@{/admin/examinations/save}" th:object="${examination}" method="post" id="examForm">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input type="hidden" th:field="*{id}">
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Examination Title *</label>
+                        <input type="text" th:field="*{examName}" class="form-control" placeholder="e.g. Database Management Systems - End Sem" required>
+                    </div>
+
+                    <!-- Department & Semester side-by-side -->
+                    <div class="col-md-6">
+                        <label class="form-label">Department *</label>
+                        <select name="departmentId" id="departmentSelect" class="form-select" required>
+                            <option value="">Select Department</option>
+                            <option th:each="dept : ${departments}" th:value="${dept.id}" th:text="${dept.deptCode + ' - ' + dept.deptName}"
+                                    th:selected="${examination.department != null and examination.department.id == dept.id}"></option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Semester *</label>
+                        <select name="semester" id="semesterSelect" class="form-select" required>
+                            <option value="">Select Semester</option>
+                            <option th:each="sem : ${#numbers.sequence(1, 8)}" th:value="${sem}" th:text="'Semester ' + ${sem}"
+                                    th:selected="${examination.semester == sem}"></option>
+                        </select>
+                    </div>
+
+                    <!-- Dynamic Student Count Indicator (Immediately Below Department & Semester) -->
+                    <div class="col-12">
+                        <div id="studentCountContainer" class="p-2 px-3 rounded-3 border" style="background: #f8fafc;">
+                            <div class="text-muted small">
+                                <i class="bi bi-info-circle me-1 text-primary"></i>
+                                Select a Department and Semester to retrieve registered student records and check examination hall capacity.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Curriculum Subject *</label>
+                        <select name="subjectId" id="subjectSelect" class="form-select" required
+                                th:data-selected-subject="${examination.subject != null ? examination.subject.id : ''}"
+                                th:disabled="${examination.department == null}">
+                            <option value="" th:if="${examination.department == null}">Select a department first</option>
+                            <option value="" th:if="${examination.department != null and (subjects == null or subjects.isEmpty())}">No subjects available for this department.</option>
+                            <th:block th:if="${subjects != null and !subjects.isEmpty()}">
+                                <option value="">Select Subject</option>
+                                <option th:each="sub : ${subjects}" th:value="${sub.id}"
+                                        th:text="${sub.subjectCode + ' - ' + sub.subjectName}"
+                                        th:selected="${examination.subject != null and examination.subject.id == sub.id}"></option>
+                            </th:block>
+                        </select>
+                        <div id="subjectHelpText" class="form-text small text-muted"></div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Exam Type *</label>
+                        <select th:field="*{examType}" id="examTypeSelect" class="form-select" required>
+                            <option th:each="type : ${examTypes}" th:value="${type.name()}" th:text="${type.displayName}"></option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label d-flex justify-content-between align-items-center">
+                            <span>Examination Date *</span>
+                            <span class="badge bg-light text-secondary border" style="font-size: 0.7rem;">1 Exam/Day Policy</span>
+                        </label>
+                        <input type="date" th:field="*{examDate}" id="examDateField" class="form-control"
+                               th:min="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}" required>
+                        <div id="dateAvailabilityFeedback" class="mt-1"></div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Start Time *</label>
+                        <input type="time" th:field="*{startTime}" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Duration (Minutes) *</label>
+                        <input type="number" th:field="*{durationMinutes}" class="form-control" min="30" max="360" value="180" required>
+                    </div>
+
+                    <!-- Examination Hall / Room Selection with Dynamic Capacity Indicators -->
+                    <div class="col-12">
+                        <label class="form-label d-flex justify-content-between">
+                            <span>Assigned Examination Hall</span>
+                            <small class="text-muted">Displays capacity & suitability</small>
+                        </label>
+                        <select name="examRoomId" id="examRoomSelect" class="form-select">
+                            <option value="" data-capacity="0" data-name="Unassigned">Unassigned (Auto-Assign Later / Multi-Room Allocation)</option>
+                            <option th:each="room : ${rooms}"
+                                    th:value="${room.id}"
+                                    th:data-capacity="${room.capacity}"
+                                    th:data-name="${room.roomNumber + ' (' + room.building + ')'}"
+                                    th:data-base-text="${room.roomNumber + ' (' + room.building + ') - Capacity: ' + room.capacity}"
+                                    th:text="${room.roomNumber + ' (' + room.building + ') - Capacity: ' + room.capacity}"
+                                    th:selected="${examination.examRoom != null and examination.examRoom.id == room.id}"></option>
+                        </select>
+                        <div id="roomCapacityStatus" class="mt-2"></div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-4 pt-2 border-top">
+                    <button type="submit" id="saveExamBtn" class="btn btn-smart-primary"><i class="bi bi-check-lg me-1"></i> Save Examination</button>
+                    <a href="/admin/examinations" class="btn btn-light border">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="none">
+    document.addEventListener('DOMContentLoaded', function () {
+        const deptSelect = document.getElementById('departmentSelect');
+        const semSelect = document.getElementById('semesterSelect');
+        const subjectSelect = document.getElementById('subjectSelect');
+        const subjectHelp = document.getElementById('subjectHelpText');
+        const roomSelect = document.getElementById('examRoomSelect');
+        const countContainer = document.getElementById('studentCountContainer');
+        const roomStatus = document.getElementById('roomCapacityStatus');
+        const saveBtn = document.getElementById('saveExamBtn');
+        const form = document.getElementById('examForm');
+
+        let currentStudentCount = null;
+        let isInsufficientCapacity = false;
+
+        function loadSubjects(preferredSubjectId) {
+            const deptId = deptSelect.value;
+            const semester = semSelect.value;
+
+            if (!deptId) {
+                subjectSelect.innerHTML = '<option value="">Select a department first</option>';
+                subjectSelect.disabled = true;
+                if (subjectHelp) subjectHelp.textContent = '';
+                return;
+            }
+
+            subjectSelect.disabled = true;
+            subjectSelect.innerHTML = '<option value="">Loading subjects...</option>';
+            if (subjectHelp) {
+                subjectHelp.innerHTML = '<span class="spinner-border spinner-border-sm me-1 text-primary" role="status"></span>Loading department subjects...';
+            }
+
+            let url = '/admin/examinations/subjects?departmentId=' + encodeURIComponent(deptId);
+            if (semester) {
+                url += '&semester=' + encodeURIComponent(semester);
+            }
+
+            fetch(url)
+                .then(res => res.json())
+                .then(subjects => {
+                    subjectSelect.innerHTML = '';
+                    if (!subjects || subjects.length === 0) {
+                        const noMsg = semester
+                            ? 'No subjects available for this department and semester.'
+                            : 'No subjects available for this department.';
+                        subjectSelect.innerHTML = `<option value="">${noMsg}</option>`;
+                        subjectSelect.disabled = true;
+                        if (subjectHelp) subjectHelp.textContent = noMsg;
+                        return;
+                    }
+
+                    subjectSelect.disabled = false;
+                    const defaultOpt = document.createElement('option');
+                    defaultOpt.value = '';
+                    defaultOpt.textContent = 'Select Subject';
+                    subjectSelect.appendChild(defaultOpt);
+
+                    let foundPreselected = false;
+                    subjects.forEach(sub => {
+                        const opt = document.createElement('option');
+                        opt.value = sub.id;
+                        opt.textContent = `${sub.subjectCode} - ${sub.subjectName}`;
+                        if (preferredSubjectId && String(sub.id) === String(preferredSubjectId)) {
+                            opt.selected = true;
+                            foundPreselected = true;
+                        }
+                        subjectSelect.appendChild(opt);
+                    });
+
+                    if (subjectHelp) {
+                        const semLabel = semester ? ` (Semester ${semester})` : '';
+                        subjectHelp.textContent = `${subjects.length} subject(s) loaded${semLabel}.`;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching subjects:', err);
+                    subjectSelect.innerHTML = '<option value="">Error loading subjects</option>';
+                    subjectSelect.disabled = false;
+                    if (subjectHelp) subjectHelp.textContent = 'Error loading subjects. Please check connection.';
+                });
+        }
+
+        function updateStudentCount() {
+            const deptId = deptSelect.value;
+            const semester = semSelect.value;
+
+            if (!deptId || !semester) {
+                currentStudentCount = null;
+                countContainer.className = 'p-2 px-3 rounded-3 border bg-light';
+                countContainer.innerHTML = '<div class="text-muted small"><i class="bi bi-info-circle me-1 text-primary"></i> Select a Department and Semester to retrieve registered student records and check examination hall capacity.</div>';
+                resetRoomOptions();
+                evaluateRoomCapacity();
+                return;
+            }
+
+            countContainer.className = 'p-2 px-3 rounded-3 border bg-light';
+            countContainer.innerHTML = '<div class="text-secondary small"><span class="spinner-border spinner-border-sm me-2 text-primary" role="status"></span>Retrieving student count from database...</div>';
+
+            fetch('/admin/examinations/student-count?departmentId=' + encodeURIComponent(deptId) + '&semester=' + encodeURIComponent(semester))
+                .then(res => res.json())
+                .then(data => {
+                    currentStudentCount = data.count;
+                    const deptText = deptSelect.options[deptSelect.selectedIndex].text;
+
+                    if (data.count > 0) {
+                        countContainer.className = 'p-3 rounded-3 border border-primary-subtle bg-primary-subtle d-flex align-items-center justify-content-between flex-wrap gap-2';
+                        countContainer.innerHTML = `
+                            <div>
+                                <i class="bi bi-people-fill me-2 text-primary fs-5"></i>
+                                <strong>Department:</strong> <span>${data.departmentName || deptText}</span> &nbsp;|&nbsp;
+                                <strong>Semester:</strong> <span>${data.semester}</span> &nbsp;|&nbsp;
+                                <strong>Total Students:</strong> <span class="badge bg-primary fs-6 ms-1">${data.count}</span>
+                            </div>
+                            <small class="text-muted"><i class="bi bi-database-check text-success me-1"></i>Verified from MySQL database</small>
+                        `;
+                    } else {
+                        countContainer.className = 'p-3 rounded-3 border border-warning-subtle bg-warning-subtle d-flex align-items-center justify-content-between flex-wrap gap-2';
+                        countContainer.innerHTML = `
+                            <div>
+                                <i class="bi bi-exclamation-triangle-fill me-2 text-warning fs-5"></i>
+                                <span class="fw-medium text-dark">No students registered for this department and semester.</span>
+                            </div>
+                            <span class="badge bg-secondary">0 Students</span>
+                        `;
+                    }
+
+                    updateRoomOptionsWithCapacity(data.count);
+                    evaluateRoomCapacity();
+                })
+                .catch(err => {
+                    console.error('Error fetching student count:', err);
+                    countContainer.className = 'p-2 px-3 rounded-3 border border-danger-subtle bg-danger-subtle';
+                    countContainer.innerHTML = '<div class="text-danger small"><i class="bi bi-exclamation-circle me-1"></i> Unable to retrieve student count. Please check connection.</div>';
+                });
+        }
+
+        function resetRoomOptions() {
+            Array.from(roomSelect.options).forEach(opt => {
+                if (opt.dataset.baseText) {
+                    opt.text = opt.dataset.baseText;
+                }
+            });
+        }
+
+        function updateRoomOptionsWithCapacity(count) {
+            Array.from(roomSelect.options).forEach(opt => {
+                const baseText = opt.dataset.baseText;
+                const capacity = parseInt(opt.dataset.capacity || '0', 10);
+                if (baseText && capacity > 0) {
+                    const diff = capacity - count;
+                    if (diff >= 0) {
+                        opt.text = baseText + '  [✓ Sufficient, +' + diff + ' remaining seats]';
+                    } else {
+                        opt.text = baseText + '  [✗ Insufficient, ' + diff + ' seats]';
+                    }
+                }
+            });
+        }
+
+        function loadAvailableRoomsForDate(dateStr, preferredRoomId) {
+            let url = '/admin/examinations/available-rooms';
+            const params = [];
+            if (dateStr) params.push('date=' + encodeURIComponent(dateStr));
+            if (currentExamId) params.push('excludeId=' + encodeURIComponent(currentExamId));
+            if (params.length > 0) url += '?' + params.join('&');
+
+            const currentVal = preferredRoomId || roomSelect.value;
+
+            fetch(url)
+                .then(r => r.json())
+                .then(rooms => {
+                    const prevSelected = currentVal;
+                    roomSelect.innerHTML = '<option value="" data-capacity="0" data-name="Unassigned">Unassigned (Auto-Assign Later / Multi-Room Allocation)</option>';
+
+                    let foundPrev = false;
+                    if (rooms && rooms.length > 0) {
+                        rooms.forEach(room => {
+                            const opt = document.createElement('option');
+                            opt.value = room.id;
+                            opt.dataset.capacity = room.capacity;
+                            opt.dataset.name = room.roomNumber + ' (' + room.building + ')';
+                            const baseText = room.roomNumber + ' (' + room.building + ') - Capacity: ' + room.capacity;
+                            opt.dataset.baseText = baseText;
+
+                            if (currentStudentCount !== null && currentStudentCount > 0) {
+                                const diff = room.capacity - currentStudentCount;
+                                if (diff >= 0) {
+                                    opt.text = baseText + '  [✓ Sufficient, +' + diff + ' remaining seats]';
+                                } else {
+                                    opt.text = baseText + '  [✗ Insufficient, ' + diff + ' seats]';
+                                }
+                            } else {
+                                opt.text = baseText;
+                            }
+
+                            if (prevSelected && String(room.id) === String(prevSelected)) {
+                                opt.selected = true;
+                                foundPrev = true;
+                            }
+                            roomSelect.appendChild(opt);
+                        });
+                    }
+
+                    if (prevSelected && !foundPrev && prevSelected !== "") {
+                        // Previously selected room is occupied on this date
+                        roomSelect.value = "";
+                        roomStatus.innerHTML = `
+                            <div class="alert alert-warning py-2 px-3 mb-0 small d-flex align-items-center gap-2">
+                                <i class="bi bi-exclamation-triangle-fill text-warning fs-5 flex-shrink-0"></i>
+                                <div>
+                                    <strong>Room Occupancy Notice:</strong> The previously assigned examination hall is already booked or occupied on <strong>${dateStr}</strong>. It has been excluded from the available room list.
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        evaluateRoomCapacity();
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching available rooms:', err);
+                });
+        }
+
+        function evaluateRoomCapacity() {
+            const selectedOpt = roomSelect.selectedOptions[0];
+            const roomId = roomSelect.value;
+            const capacity = selectedOpt ? parseInt(selectedOpt.dataset.capacity || '0', 10) : 0;
+            const roomName = selectedOpt ? (selectedOpt.dataset.name || selectedOpt.text) : '';
+
+            // Reset flags
+            isInsufficientCapacity = false;
+            saveBtn.disabled = false;
+
+            if (!roomId || capacity === 0) {
+                // Unassigned / Multi-room allocation mode
+                roomStatus.innerHTML = `
+                    <div class="alert alert-secondary py-2 px-3 mb-0 small d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle-fill text-primary fs-5"></i>
+                        <div>
+                            <strong>Multi-Room / Auto-Assignment Mode:</strong>
+                            No single room locked. The scheduling engine will distribute students across available halls if total count exceeds single room capacities.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            if (currentStudentCount !== null && currentStudentCount > 0) {
+                const remainingSeats = capacity - currentStudentCount;
+                if (remainingSeats < 0) {
+                    isInsufficientCapacity = true;
+                    saveBtn.disabled = true;
+                    roomStatus.innerHTML = `
+                        <div class="alert alert-danger py-2 px-3 mb-0 small d-flex align-items-center gap-2">
+                            <i class="bi bi-exclamation-triangle-fill text-danger fs-5 flex-shrink-0"></i>
+                            <div>
+                                <strong>Insufficient Hall Capacity:</strong>
+                                Selected hall <strong>${roomName}</strong> has a seating capacity of <strong>${capacity}</strong> seats, but this cohort has <strong>${currentStudentCount}</strong> students registered.
+                                <span class="badge bg-danger ms-1">Shortfall: ${Math.abs(remainingSeats)} seats</span>
+                                <br><span class="text-danger-emphasis">Please select a larger examination hall, or select <em>"Unassigned (Auto-Assign Later / Multi-Room Allocation)"</em> to distribute across multiple rooms.</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    roomStatus.innerHTML = `
+                        <div class="alert alert-success py-2 px-3 mb-0 small d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success fs-5 flex-shrink-0"></i>
+                            <div>
+                                <strong>Capacity Confirmed:</strong>
+                                Selected hall <strong>${roomName}</strong> (Capacity: <strong>${capacity}</strong> seats) has sufficient space for all <strong>${currentStudentCount}</strong> registered students.
+                                <span class="badge bg-success ms-2">Remaining Available Seats: ${remainingSeats}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                roomStatus.innerHTML = `
+                    <div class="alert alert-light py-2 px-3 mb-0 small border text-muted">
+                        <i class="bi bi-door-open me-1 text-primary"></i> Hall Capacity: <strong>${capacity}</strong> seats.
+                    </div>
+                `;
+            }
+        }
+
+        const dateField = document.getElementById('examDateField');
+        const dateFeedback = document.getElementById('dateAvailabilityFeedback');
+        const examIdInput = document.querySelector('input[name="id"]');
+        const currentExamId = (examIdInput && examIdInput.value) ? examIdInput.value : '';
+        let isDateUnavailable = false;
+        let bookedDatesSet = new Set();
+
+        function loadBookedDates() {
+            let url = '/admin/examinations/booked-dates';
+            if (currentExamId) {
+                url += '?excludeId=' + encodeURIComponent(currentExamId);
+            }
+            fetch(url)
+                .then(r => r.json())
+                .then(dates => {
+                    bookedDatesSet = new Set(dates);
+                    if (dateField.value) {
+                        checkSelectedDate(dateField.value);
+                    }
+                })
+                .catch(err => console.error('Error fetching booked dates:', err));
+        }
+
+        function checkSelectedDate(selectedDate) {
+            if (!selectedDate) {
+                dateFeedback.innerHTML = '';
+                isDateUnavailable = false;
+                return;
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            if (selectedDate < today) {
+                isDateUnavailable = true;
+                dateFeedback.innerHTML = `
+                    <div class="text-danger small mt-1">
+                        <i class="bi bi-x-circle-fill me-1"></i>Past date: Examinations cannot be scheduled in the past.
+                    </div>
+                `;
+                return;
+            }
+
+            let checkUrl = '/admin/examinations/check-date?date=' + encodeURIComponent(selectedDate);
+            if (currentExamId) {
+                checkUrl += '&excludeId=' + encodeURIComponent(currentExamId);
+            }
+
+            fetch(checkUrl)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.available) {
+                        isDateUnavailable = true;
+                        dateFeedback.innerHTML = `
+                            <div class="p-2 rounded border border-danger-subtle bg-danger-subtle text-danger small mt-1">
+                                <i class="bi bi-x-octagon-fill me-1"></i>
+                                <strong>Date Already Booked:</strong> ${data.bookedExamName ? 'Scheduled for "' + data.bookedExamName + '"' : 'Another examination exists.'}
+                                <br><span class="text-muted">Rule: Only ONE exam per day is permitted institution-wide.</span>
+                                <div class="mt-1">
+                                    <button type="button" id="suggestDateBtn" class="btn btn-sm btn-link p-0 text-primary fw-semibold" style="font-size:0.78rem;">
+                                        <i class="bi bi-calendar-plus me-1"></i>Pick Next Available Date
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        const suggestBtn = document.getElementById('suggestDateBtn');
+                        if (suggestBtn) {
+                            suggestBtn.addEventListener('click', pickNextAvailableDate);
+                        }
+                    } else {
+                        isDateUnavailable = false;
+                        dateFeedback.innerHTML = `
+                            <div class="text-success small fw-medium mt-1">
+                                <i class="bi bi-check-circle-fill me-1"></i>Date Available (0 institutional conflicts)
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error checking date availability:', err);
+                });
+        }
+
+        function pickNextAvailableDate() {
+            let candidate = new Date();
+            candidate.setDate(candidate.getDate() + 1); // Start tomorrow
+
+            for (let i = 0; i < 90; i++) {
+                const dateStr = candidate.toISOString().split('T')[0];
+                const dayOfWeek = candidate.getDay(); // 0 is Sunday
+                if (dayOfWeek !== 0 && !bookedDatesSet.has(dateStr)) {
+                    dateField.value = dateStr;
+                    checkSelectedDate(dateStr);
+                    break;
+                }
+                candidate.setDate(candidate.getDate() + 1);
+            }
+        }
+
+        dateField.addEventListener('change', function () {
+            checkSelectedDate(this.value);
+            loadAvailableRoomsForDate(this.value, roomSelect.value);
+        });
+
+        loadBookedDates();
+        if (dateField.value) {
+            loadAvailableRoomsForDate(dateField.value, roomSelect.value);
+        }
+
+        deptSelect.addEventListener('change', function () {
+            loadSubjects(null);
+            updateStudentCount();
+        });
+
+        semSelect.addEventListener('change', function () {
+            if (deptSelect.value) {
+                loadSubjects(subjectSelect.value);
+            }
+            updateStudentCount();
+        });
+
+        roomSelect.addEventListener('change', evaluateRoomCapacity);
+
+        form.addEventListener('submit', function (e) {
+            if (isDateUnavailable) {
+                e.preventDefault();
+                alert('Cannot schedule examination: The selected date is already booked or invalid. Please select an available date (Rule: One examination per day across the institution).');
+                dateField.focus();
+                return;
+            }
+            if (isInsufficientCapacity) {
+                e.preventDefault();
+                alert('Cannot schedule examination: Selected room capacity is insufficient for the student count. Please choose a suitable room or choose Unassigned for multi-room allocation.');
+                roomSelect.focus();
+            }
+        });
+
+        // Trigger on page load
+        const initialSubjectId = subjectSelect.dataset.selectedSubject;
+        if (deptSelect.value) {
+            loadSubjects(initialSubjectId);
+            if (semSelect.value) {
+                updateStudentCount();
+            } else {
+                evaluateRoomCapacity();
+            }
+        } else {
+            subjectSelect.innerHTML = '<option value="">Select a department first</option>';
+            subjectSelect.disabled = true;
+            evaluateRoomCapacity();
+        }
+    });
+</script>
+</body>
+</html>

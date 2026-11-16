@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coordinator Command Center | SmartExam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --navy: #0f172a; --blue: #2563eb; --sidebar-width: 260px; }
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f1f5f9; color: #1e293b; margin: 0; }
+        .sidebar { position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100vh; background: var(--navy); z-index: 1000; display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar-brand { padding: 22px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-brand h4 { color: #fff; font-weight: 700; font-size: 1.15rem; margin: 0; }
+        .sidebar-brand p { color: #94a3b8; font-size: 0.72rem; margin: 2px 0 0; }
+        .sidebar-nav { padding: 14px 0; flex: 1; }
+        .sidebar-section { padding: 8px 20px 4px; color: #64748b; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
+        .sidebar-nav .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 500; border-left: 3px solid transparent; }
+        .sidebar-nav .nav-link.active { color: #fff; background: rgba(37,99,235,0.18); border-left-color: var(--blue); font-weight: 600; }
+        .sidebar-nav .nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .sidebar-nav .nav-link i { font-size: 1.05rem; width: 20px; }
+        .main-wrapper { margin-left: var(--sidebar-width); min-height: 100vh; display: flex; flex-direction: column; }
+        .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar-title { font-size: 1.05rem; font-weight: 600; color: var(--navy); }
+        .page-content { padding: 26px 28px; flex: 1; }
+        .kpi-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: space-between; }
+        .kpi-value { font-size: 1.65rem; font-weight: 700; color: var(--navy); }
+        .kpi-label { font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .kpi-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+        .content-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
+        .content-card-header { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
+        .table-smart th { background: #f8fafc; color: #475569; font-size: 0.74rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 11px 16px; border-bottom: 1px solid #e2e8f0; }
+        .table-smart td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: coordinatorSidebar('dashboard')}"></div>
+
+<div class="main-wrapper">
+    <div th:replace="~{fragments/layout :: topbar('Coordinator Operations Command Center')}"></div>
+
+    <div class="page-content">
+
+        <!-- Scheduling Conflict Alert Banner -->
+        <div th:if="${conflictsCount > 0}" class="alert alert-danger d-flex align-items-center justify-content-between p-3 mb-4 rounded-3 border-danger shadow-sm">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-exclamation-octagon-fill fs-2 text-danger"></i>
+                <div>
+                    <h6 class="fw-bold mb-1" th:text="${conflictsCount + ' Active Scheduling Conflicts Detected!'}">Conflicts Detected</h6>
+                    <small class="text-danger-emphasis">Room double bookings, capacity overflow, or overlapping faculty assignments require coordinator attention.</small>
+                </div>
+            </div>
+            <a href="/admin/conflicts" class="btn btn-sm btn-danger px-3 shadow-sm"><i class="bi bi-tools me-1"></i> Open Conflict Diagnostics</a>
+        </div>
+        <div th:if="${conflictsCount == 0}" class="alert alert-success d-flex align-items-center justify-content-between p-3 mb-4 rounded-3 border-success shadow-sm">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-shield-check fs-2 text-success"></i>
+                <div>
+                    <h6 class="fw-bold mb-1">Zero Scheduling Conflicts</h6>
+                    <small class="text-success-emphasis">All scheduled examination sessions, room allocations, and faculty duties satisfy hard constraints.</small>
+                </div>
+            </div>
+            <a href="/admin/schedule/generate" class="btn btn-sm btn-success px-3"><i class="bi bi-magic me-1"></i> Generate Sessions</a>
+        </div>
+
+        <!-- 8 Required Dynamic Dashboard Statistics from MySQL -->
+        <div class="row g-3 mb-4">
+            <!-- 1. Total Examinations -->
+            <div class="col-6 col-md-3">
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-label">Total Exams</div>
+                        <div class="kpi-value" th:text="${totalExaminations}">0</div>
+                    </div>
+                    <div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-journal-text"></i></div>
+                </div>
+            </div>
+            <!-- 2. Upcoming Examinations -->
+            <div class="col-6 col-md-3">
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-label">Upcoming Exams</div>
+                        <div class="kpi-value text-primary" th:text="${upcomingCount}">0</div>
+                    </div>
+                    <div class="kpi-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-calendar-event"></i></div>
+                </div>
+            </div>
+            <!-- 3. Completed Examinations -->
+            <div class="col-6 col-md-3">
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-label">Completed Exams</div>
+                        <div class="kpi-value text-secondary" th:text="${completedExams}">0</div>
+                    </div>
+                    <div class="kpi-icon bg-secondary bg-opacity-10 text-secondary"><i class="bi bi-check-all"></i></div>
+                </div>
+            </div>
+            <!-- 4. Total Exam Rooms -->
+            <div class="col-6 col-md-3">
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-label">Total Rooms</div>
+                        <div class="kpi-value text-dark" th:text="${totalRooms}">0</div>
+                    </div>
+                    <div class="kpi-icon bg-dark bg-opacity-10 text-dark"><i class="bi bi-door-closed"></i></div>
+                </div>
+            </div>
+            <!-- 5. Available Exam Rooms -->
+            <div class="col-6 col-md-3">
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-label">Available Rooms</div>
+                        <div class="kpi-value text-success" th:text="${availableRooms}">0</div>
+                    </div>
+                    <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="bi bi-building-check"></i></div>
+                </div>
+            </div>
+            <!-- 6. Pending Invigilation Assignments -->
+            <div class="col-6 col-md-3">
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-label">Pending Duties</div>
+                        <div class="kpi-value text-warning" th:text="${pendingAssignments}">0</div>
+                    </div>
+                    <div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-person-x"></i></div>
+                </div>
+            </div>
+            <!-- 7. Assigned Invigilators -->
+            <div class="col-6 col-md-3">
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-label">Assigned Duties</div>
+                        <div class="kpi-value text-info" th:text="${assignedInvigilators}">0</div>
+                    </div>
+                    <div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="bi bi-person-badge"></i></div>
+                </div>
+            </div>
+            <!-- 8. Scheduling Conflicts -->
+            <div class="col-6 col-md-3">
+                <div class="kpi-card">
+                    <div>
+                        <div class="kpi-label">Conflicts Alert</div>
+                        <div class="kpi-value" th:classappend="${conflictsCount > 0 ? 'text-danger' : 'text-success'}" th:text="${conflictsCount}">0</div>
+                    </div>
+                    <div class="kpi-icon" th:classappend="${conflictsCount > 0 ? 'bg-danger bg-opacity-10 text-danger' : 'bg-success bg-opacity-10 text-success'}"><i class="bi bi-shield-exclamation"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Operations Toolbar -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-3 d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                <span class="fw-bold text-navy"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Quick Coordinator Operations:</span>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="/admin/schedule/generate" class="btn btn-sm btn-primary"><i class="bi bi-magic me-1"></i> Auto-Generate Timetable</a>
+                    <a href="/admin/invigilation/auto-allocate" class="btn btn-sm btn-success"><i class="bi bi-cpu me-1"></i> Auto-Allocate Invigilators</a>
+                    <a href="/admin/seating" class="btn btn-sm btn-info text-white"><i class="bi bi-grid-3x3-gap me-1"></i> Generate Seating</a>
+                    <a href="/admin/conflicts" class="btn btn-sm btn-outline-danger"><i class="bi bi-shield-check me-1"></i> Scan Conflicts</a>
+                    <a href="/admin/reports/timetable/pdf" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-pdf me-1"></i> Export PDF</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Examination Readiness Summary Section (Requirement 8) -->
+        <div class="content-card mb-4">
+            <div class="content-card-header bg-white py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-clipboard2-check-fill text-primary fs-5"></i>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-navy">Examination Readiness &amp; Operational Audit Matrix</h6>
+                        <small class="text-muted">Dynamic checklist verification across Timetable, Room Allocation, Seating, Faculty, and Conflict Detection</small>
+                    </div>
+                </div>
+                <a href="/coordinator/timetable" class="btn btn-sm btn-outline-primary" style="font-size:0.75rem;">Master Timetable</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-smart mb-0">
+                    <thead>
+                        <tr>
+                            <th>Examination</th>
+                            <th>Timetable</th>
+                            <th>Room Allocation</th>
+                            <th>Seating Allocation</th>
+                            <th>Faculty Allocation</th>
+                            <th>Conflict Check</th>
+                            <th>Readiness Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="r : ${readinessList}">
+                            <td>
+                                <a th:href="@{/admin/examinations/view/{id}(id=${r.id})}" class="fw-bold text-navy text-decoration-none d-block">
+                                    <span th:text="${r.examName}">Exam Name</span>
+                                    <i class="bi bi-box-arrow-up-right ms-1 text-primary small"></i>
+                                </a>
+                                <small class="text-muted" th:text="${r.deptCode + ' Sem ' + r.semester + ' | ' + #temporals.format(r.examDate, 'dd MMM yyyy')}"></small>
+                            </td>
+                            <td>
+                                <span th:if="${r.timetableStatus == 'Confirmed'}" class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Confirmed
+                                </span>
+                                <span th:if="${r.timetableStatus != 'Confirmed'}" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                    <i class="bi bi-clock me-1"></i>Pending
+                                </span>
+                            </td>
+                            <td>
+                                <span th:if="${r.roomStatus == 'Complete'}" class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-door-open-fill me-1"></i>Complete (<span th:text="${r.roomNumber}"></span>)
+                                </span>
+                                <span th:if="${r.roomStatus != 'Complete'}" class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                    <i class="bi bi-x-circle me-1"></i>Pending
+                                </span>
+                            </td>
+                            <td>
+                                <span th:if="${r.seatingStatus == 'Complete'}" class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-grid-3x3-gap-fill me-1"></i>Complete (<span th:text="${r.allocatedStudents}"></span> seated)
+                                </span>
+                                <span th:if="${r.seatingStatus != 'Complete'}" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                    <i class="bi bi-person-dash me-1"></i>Pending (<span th:text="${r.allocatedStudents + '/' + r.eligibleStudents}"></span>)
+                                </span>
+                            </td>
+                            <td>
+                                <span th:if="${r.facultyStatus == 'Complete'}" class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-person-check-fill me-1"></i>Complete (<span th:text="${r.assignedFaculty}"></span>)
+                                </span>
+                                <span th:if="${r.facultyStatus != 'Complete'}" class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                    <i class="bi bi-person-exclamation me-1"></i>Pending (<span th:text="${r.assignedFaculty + '/' + r.requiredFaculty}"></span>)
+                                </span>
+                            </td>
+                            <td>
+                                <span th:if="${r.conflictStatus == 'Clear'}" class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-shield-check me-1"></i>Clear
+                                </span>
+                                <a th:if="${r.conflictStatus != 'Clear'}" href="/admin/conflicts" class="badge bg-danger-subtle text-danger border border-danger-subtle text-decoration-none">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Conflict Detected
+                                </a>
+                            </td>
+                            <td>
+                                <span th:if="${r.overallStatus == 'READY'}" class="badge bg-success px-2 py-1">
+                                    <i class="bi bi-check2-all me-1"></i>READY
+                                </span>
+                                <span th:if="${r.overallStatus == 'ACTION REQUIRED'}" class="badge bg-danger px-2 py-1">
+                                    <i class="bi bi-exclamation-circle me-1"></i>ACTION REQUIRED
+                                </span>
+                                <span th:if="${r.overallStatus == 'PENDING'}" class="badge bg-warning text-dark px-2 py-1">
+                                    <i class="bi bi-hourglass-split me-1"></i>PENDING
+                                </span>
+                            </td>
+                            <td>
+                                <a th:href="@{/admin/examinations/view/{id}(id=${r.id})}" class="btn btn-sm btn-outline-primary py-0 px-2" title="Inspect Examination Details">
+                                    <i class="bi bi-eye"></i> Details
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(readinessList)}">
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                No scheduled examinations found to audit.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Section 1: Upcoming Examinations -->
+            <div class="col-lg-8">
+                <div class="content-card mb-4">
+                    <div class="content-card-header">
+                        <h6 class="fw-bold mb-0"><i class="bi bi-calendar3 me-2 text-primary"></i>Upcoming Examinations Pipeline</h6>
+                        <a href="/admin/examinations" class="btn btn-sm btn-outline-primary" style="font-size:0.75rem;">Manage All Exams</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-smart mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Exam Name</th>
+                                    <th>Subject & Code</th>
+                                    <th>Date & Time</th>
+                                    <th>Assigned Room</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="exam : ${upcomingExams}">
+                                    <td>
+                                        <a th:href="@{/admin/examinations/view/{id}(id=${exam.id})}" class="fw-semibold text-navy text-decoration-none d-block">
+                                            <span th:text="${exam.examName}">Exam</span>
+                                            <i class="bi bi-box-arrow-up-right ms-1 text-primary small"></i>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="fw-medium" th:text="${exam.subject?.subjectName}">Subject</span>
+                                        <span class="badge bg-light text-dark ms-1" th:text="${exam.subject?.subjectCode}">Code</span>
+                                    </td>
+                                    <td>
+                                        <span th:text="${#temporals.format(exam.examDate, 'dd MMM yyyy')}">Date</span>
+                                        <small class="text-muted d-block" th:text="${exam.startTime + ' - ' + exam.endTime}">Time</small>
+                                    </td>
+                                    <td>
+                                        <span th:if="${exam.examRoom != null}" class="badge bg-info text-dark" th:text="${exam.examRoom?.roomNumber}">Room</span>
+                                        <span th:if="${exam.examRoom == null}" class="badge bg-warning text-dark fst-italic">Unallocated</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge" th:classappend="${exam.status.name() == 'SCHEDULED' ? 'bg-primary' : (exam.status.name() == 'COMPLETED' ? 'bg-success' : 'bg-secondary')}"
+                                              th:text="${exam.status}">SCHEDULED</span>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(upcomingExams)}">
+                                    <td colspan="5" class="text-center text-muted py-5">
+                                        <i class="bi bi-calendar-x fs-2 d-block mb-1"></i>
+                                        No upcoming examinations scheduled. Click Auto-Generate Timetable to start.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section 3: Pending Scheduling Tasks (Unassigned Invigilations) -->
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <h6 class="fw-bold mb-0 text-warning"><i class="bi bi-clock-history me-2"></i>Pending Invigilation Tasks (<span th:text="${pendingAssignments}">0</span>)</h6>
+                        <a href="/admin/invigilation/auto-allocate" class="btn btn-sm btn-success" style="font-size:0.75rem;">Run Invigilator Allocator</a>
+                    </div>
+                    <div class="p-3">
+                        <div th:if="${#lists.isEmpty(pendingExamList)}" class="text-center py-4 text-muted">
+                            <i class="bi bi-check2-circle text-success fs-2 d-block mb-1"></i>
+                            All active examinations currently have assigned faculty invigilators!
+                        </div>
+                        <div th:each="pexam : ${pendingExamList}" class="d-flex align-items-center justify-content-between p-2 mb-2 bg-light rounded-3 border">
+                            <div>
+                                <strong th:text="${pexam.examName}">Exam Name</strong>
+                                <small class="text-muted d-block" th:text="${pexam.examDate + ' | ' + pexam.startTime + ' | ' + (pexam.examRoom != null ? pexam.examRoom.roomNumber : 'No Room')}"></small>
+                            </div>
+                            <a th:href="@{'/admin/invigilation/assign?examId=' + ${pexam.id}}" class="btn btn-xs btn-outline-primary btn-sm">Assign Invigilator</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Column: Room Availability & Recent Activity -->
+            <div class="col-lg-4">
+                <!-- Section 4: Room Availability & Capacity -->
+                <div class="content-card mb-4">
+                    <div class="content-card-header">
+                        <h6 class="fw-bold mb-0"><i class="bi bi-door-open me-2 text-primary"></i>Room Availability Matrix</h6>
+                        <a href="/admin/rooms" class="btn btn-sm btn-outline-primary" style="font-size:0.75rem;">Manage</a>
+                    </div>
+                    <div class="p-3" style="max-height: 280px; overflow-y: auto;">
+                        <div th:each="r : ${rooms}" class="d-flex align-items-center justify-content-between p-2 mb-2 bg-light rounded border">
+                            <div>
+                                <span class="fw-bold" th:text="${r.roomNumber}">Room 101</span>
+                                <small class="text-muted d-block" th:text="${r.building + ' (' + r.floor + ')'}"></small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge" th:classappend="${r.available ? 'bg-success' : 'bg-danger'}" th:text="${r.available ? 'Available' : 'Unavailable'}"></span>
+                                <small class="text-muted d-block" th:text="${'Cap: ' + r.capacity}"></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 5: Recent Examination Activities -->
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <h6 class="fw-bold mb-0"><i class="bi bi-activity me-2 text-primary"></i>Recent System Activity</h6>
+                    </div>
+                    <div class="p-3" style="max-height: 320px; overflow-y: auto;">
+                        <div th:each="act : ${recentActivities}" class="mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="badge bg-secondary" th:text="${act.action}">ACTION</span>
+                                <small class="text-muted" th:text="${#temporals.format(act.timestamp, 'HH:mm dd MMM')}">Time</small>
+                            </div>
+                            <div class="small text-dark mt-1" th:text="${act.description}">Description</div>
+                            <small class="text-muted" th:text="${'By: ' + act.performedBy}">admin</small>
+                        </div>
+                        <div th:if="${#lists.isEmpty(recentActivities)}" class="text-center text-muted py-4">No recent activity logs recorded yet.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

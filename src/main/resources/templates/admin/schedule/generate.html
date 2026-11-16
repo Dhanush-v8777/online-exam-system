@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Complete Examination Timetable | SmartExam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --navy: #0f172a; --blue: #2563eb; --sidebar-width: 260px; }
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f1f5f9; color: #1e293b; margin: 0; }
+        .sidebar { position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100vh; background: var(--navy); z-index: 1000; display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar-brand { padding: 22px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-brand h4 { color: #fff; font-weight: 700; font-size: 1.15rem; margin: 0; }
+        .sidebar-brand p { color: #94a3b8; font-size: 0.72rem; margin: 2px 0 0; }
+        .sidebar-nav { padding: 14px 0; flex: 1; }
+        .sidebar-section { padding: 8px 20px 4px; color: #64748b; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
+        .sidebar-nav .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 500; border-left: 3px solid transparent; }
+        .sidebar-nav .nav-link.active { color: #fff; background: rgba(37,99,235,0.18); border-left-color: var(--blue); font-weight: 600; }
+        .sidebar-nav .nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .sidebar-nav .nav-link i { font-size: 1.05rem; width: 20px; }
+        .main-wrapper { margin-left: var(--sidebar-width); min-height: 100vh; display: flex; flex-direction: column; }
+        .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar-title { font-size: 1.05rem; font-weight: 600; color: var(--navy); }
+        .page-content { padding: 26px 28px; flex: 1; }
+        .card-custom { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .table-smart th { background: #f8fafc; color: #475569; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 11px 14px; border-bottom: 1px solid #e2e8f0; }
+        .table-smart td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; vertical-align: middle; }
+        .badge-rule { font-size: 0.72rem; padding: 4px 8px; border-radius: 6px; font-weight: 600; }
+        .text-navy { color: #0f172a !important; }
+        .bg-navy { background-color: #0f172a !important; color: #ffffff !important; }
+        .subject-chip {
+            display: inline-flex;
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 7px 12px;
+            margin: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            font-size: 0.84rem;
+            line-height: 1.4;
+            white-space: normal;
+            word-break: break-word;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .subject-chip:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+            border-color: #93c5fd;
+        }
+        .subject-chip .chip-code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-weight: 700;
+            color: #1d4ed8;
+            background: #eff6ff;
+            padding: 3px 8px;
+            border-radius: 5px;
+            border: 1px solid #bfdbfe;
+            margin-right: 8px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .subject-chip .chip-name {
+            font-weight: 600;
+            color: #0f172a;
+        }
+        @media print {
+            .sidebar, .topbar, .no-print, .btn, .card-generator-controls { display: none !important; }
+            .main-wrapper { margin-left: 0 !important; width: 100% !important; }
+            .page-content { padding: 0 !important; }
+            .card-custom { border: none !important; box-shadow: none !important; padding: 0 !important; }
+            .print-header { display: block !important; margin-bottom: 20px; border-bottom: 2px solid #0f172a; padding-bottom: 10px; }
+            table { width: 100% !important; border-collapse: collapse; }
+            th, td { border: 1px solid #cbd5e1 !important; padding: 8px !important; }
+        }
+        .print-header { display: none; }
+    </style>
+    <link rel="stylesheet" th:href="@{/css/dashboard-common.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: roleSidebar('schedule')}"></div>
+
+<div class="main-wrapper">
+    <div th:replace="~{fragments/header :: topbar('Complete Examination Timetable Generation')}"></div>
+
+    <div class="page-content">
+        <!-- Print Header -->
+        <div class="print-header">
+            <h3 class="fw-bold mb-1">SMARTEXAM ACADEMIC SCHEDULING SYSTEM</h3>
+            <h5 class="text-secondary mb-1">Official Examination Timetable & Hall Allocations</h5>
+            <div class="small text-muted" id="printScopeDetails">Institution-Wide Conflict-Free Examination Schedule</div>
+        </div>
+
+        <div th:if="${successMsg}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMsg}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${errorMsg}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${schedulingLogs}" class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+            <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-1"></i>Automated Allocation Execution Summary:</h6>
+            <ul class="mb-0 ps-3 small">
+                <li th:each="log : ${schedulingLogs}" th:text="${log}"></li>
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- GENERATOR CONTROLS CARD -->
+        <div class="card-custom mb-4 card-generator-controls no-print">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1 text-navy">
+                        <i class="bi bi-calendar2-range me-2 text-primary"></i>Generate Complete Examination Timetable
+                    </h5>
+                    <p class="text-muted small mb-0">
+                        Schedule all subjects for a selected Academic Department / Course and Semester at once with strict institution-wide 1-exam-per-day enforcement.
+                    </p>
+                </div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle badge-rule">
+                    <i class="bi bi-shield-lock me-1"></i> 1 Exam / Day Global Rule Enforced
+                </span>
+            </div>
+
+            <div class="row g-3">
+                <!-- Step 1: Select Department / Course -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small">Department / Academic Course *</label>
+                    <select id="ttDeptSelect" class="form-select" required>
+                        <option value="">-- Choose Department / Course --</option>
+                        <option th:each="d : ${departments}" th:value="${d.id}" th:text="${d.deptCode + ' - ' + d.deptName}"></option>
+                    </select>
+                </div>
+
+                <!-- Step 2: Select Semester -->
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Semester *</label>
+                    <select id="ttSemSelect" class="form-select" required>
+                        <option value="">-- Choose Semester --</option>
+                        <option th:each="s : ${#numbers.sequence(1, 8)}" th:value="${s}" th:text="'Semester ' + ${s}"></option>
+                    </select>
+                </div>
+
+                <!-- Step 3: Examination Type / Name -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small">Examination Type / Name *</label>
+                    <select id="ttExamType" class="form-select" required>
+                        <option value="INTERNAL_EXAMINATION">Internal Examination</option>
+                        <option value="PREPARATORY_EXAMINATION">Preparatory Examination</option>
+                        <option value="MID_TERM_EXAMINATION">Mid-Term Examination</option>
+                        <option value="END_SEMESTER_EXAMINATION" selected>End-Semester Examination</option>
+                        <option value="VIVA_EXAMINATION">Viva Examination</option>
+                        <option value="LABORATORY_EXAMINATION">Laboratory Examination</option>
+                    </select>
+                </div>
+
+                <!-- Step 4: Starting Date -->
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Start Date *</label>
+                    <input type="date" id="ttStartDate" class="form-control"
+                           th:min="${#temporals.format(#temporals.createNow().plusDays(1), 'yyyy-MM-dd')}"
+                           th:value="${#temporals.format(#temporals.createNow().plusDays(7), 'yyyy-MM-dd')}" required>
+                </div>
+
+                <!-- Step 5: Duration -->
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Duration (Mins)</label>
+                    <input type="number" id="ttDuration" class="form-control" value="180" min="60" max="360" step="30">
+                </div>
+
+                <!-- Cohort Info and Subjects Mapped -->
+                <div class="col-12">
+                    <div id="cohortSummaryCard" class="p-3 rounded-3 border bg-light">
+                        <div class="text-muted small">
+                            <i class="bi bi-info-circle me-1 text-primary"></i>
+                            Select an Academic Department and Semester to retrieve curriculum subjects and eligible student records from MySQL.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Constraint Options & Generate Button -->
+                <div class="col-12 d-flex justify-content-between align-items-center pt-2 border-top">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="excludeSundaysCheck" checked>
+                        <label class="form-check-label small text-muted" for="excludeSundaysCheck">
+                            Exclude Sundays & Holidays (Enforce 1-day minimum study interval between examinations)
+                        </label>
+                    </div>
+
+                    <button type="button" id="generatePreviewBtn" class="btn btn-primary px-4 fw-semibold" style="background:#2563eb; border:none;" disabled>
+                        <i class="bi bi-magic me-2"></i> Generate Complete Timetable
+                    </button>
+                </div>
+
+                <!-- Progress feedback during generation -->
+                <div id="generationProgressContainer" class="col-12 mt-3" style="display: none;">
+                    <div class="p-3 rounded-3 border bg-light">
+                        <div class="d-flex align-items-center justify-content-between mb-2 small">
+                            <span class="text-primary fw-semibold"><i class="spinner-border spinner-border-sm me-2"></i> <span id="progressStatusText">Computing conflict-free timetable...</span></span>
+                            <span class="text-muted fw-bold" id="progressPercentageText">40%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div id="generationProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 40%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TIMETABLE PREVIEW & 3-STAGE ALLOCATION DASHBOARD -->
+        <div id="timetablePreviewSection" class="card-custom" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom flex-wrap gap-2">
+                <div>
+                    <h5 class="fw-bold mb-1 text-navy">
+                        <i class="bi bi-grid-1x2-fill me-2 text-primary"></i>Integrated Examination Allocation Dashboard
+                    </h5>
+                    <p class="text-muted small mb-0">Manage timetable dates, examination halls, and faculty invigilators in an integrated 3-stage process before publication.</p>
+                </div>
+                <div class="d-flex gap-2 no-print flex-wrap">
+                    <button type="button" id="autoAllocateAllBtn" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
+                        <i class="bi bi-magic me-1"></i> Automatically Allocate Rooms & Invigilators
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+                        <i class="bi bi-printer me-1"></i> Print Timetable
+                    </button>
+                    <button type="button" id="resetPreviewBtn" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-x-circle me-1"></i> Cancel Preview
+                    </button>
+                </div>
+            </div>
+
+            <!-- Allocation Summary Stats Cards -->
+            <div class="row g-3 mb-4 no-print">
+                <div class="col-md-2 col-sm-4">
+                    <div class="p-3 rounded-3 bg-light border text-center h-100">
+                        <small class="text-muted d-block fw-semibold" style="font-size:0.75rem;">TOTAL EXAMINATIONS</small>
+                        <span class="fs-4 fw-bold text-navy" id="previewSubjectsCount">0</span>
+                        <div class="small text-muted" id="previewDeptSemLabel">-</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-4">
+                    <div class="p-3 rounded-3 bg-light border text-center h-100">
+                        <small class="text-muted d-block fw-semibold" style="font-size:0.75rem;">HALL ALLOCATION STATUS</small>
+                        <div class="d-flex justify-content-center align-items-center gap-2 mt-1">
+                            <span class="fs-4 fw-bold text-primary" id="statExamsWithRooms">0</span>
+                            <span class="text-muted">/</span>
+                            <span class="fs-5 fw-bold text-navy" id="statTotalExamsRooms">0</span>
+                            <span class="badge bg-success ms-1" id="statRoomsBadge">0 Halls</span>
+                        </div>
+                        <small class="text-muted d-block mt-1" id="statExamsWithoutRoomsLabel">0 without halls</small>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-4">
+                    <div class="p-3 rounded-3 bg-light border text-center h-100">
+                        <small class="text-muted d-block fw-semibold" style="font-size:0.75rem;">INVIGILATOR STAFFING</small>
+                        <div class="d-flex justify-content-center align-items-center gap-2 mt-1">
+                            <span class="fs-4 fw-bold text-info-emphasis" id="statExamsWithFaculty">0</span>
+                            <span class="text-muted">/</span>
+                            <span class="fs-5 fw-bold text-navy" id="statTotalExamsFaculty">0</span>
+                            <span class="badge bg-info text-dark ms-1" id="statFacultyBadge">0 Duties</span>
+                        </div>
+                        <small class="text-muted d-block mt-1" id="statExamsWithoutFacultyLabel">0 unassigned</small>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-6">
+                    <div class="p-3 rounded-3 bg-light border text-center h-100">
+                        <small class="text-muted d-block fw-semibold" style="font-size:0.75rem;">REGISTERED STUDENTS</small>
+                        <span class="fs-4 fw-bold text-success" id="previewStudentCount">0</span>
+                        <small class="text-muted d-block">Eligible / Exam</small>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-6">
+                    <div class="p-3 rounded-3 bg-light border text-center h-100">
+                        <small class="text-muted d-block fw-semibold" style="font-size:0.75rem;">OVERALL READINESS</small>
+                        <div class="mt-2" id="statOverallReadinessBadge">
+                            <span class="badge bg-secondary px-3 py-2" style="font-size:0.85rem;">PENDING</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form for Batch Confirmation -->
+            <form th:action="@{/admin/schedule/batch-confirm}" method="post" id="batchConfirmForm">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input type="hidden" name="departmentId" id="batchConfirmDeptId">
+                <input type="hidden" name="semester" id="batchConfirmSemester">
+                <input type="hidden" name="examType" id="batchConfirmExamType">
+                <input type="hidden" name="examName" id="batchConfirmExamName">
+                <div id="hiddenBatchInputsContainer"></div>
+
+                <!-- 3 Interactive Stages Tabs -->
+                <ul class="nav nav-tabs nav-fill mb-3 no-print" id="allocationStagesTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold text-navy py-2" id="stage1-tab" data-bs-toggle="tab" data-bs-target="#stage1-pane" type="button" role="tab">
+                            <i class="bi bi-calendar3 me-1 text-primary"></i> Stage 1: Timetable Schedule
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold text-navy py-2" id="stage2-tab" data-bs-toggle="tab" data-bs-target="#stage2-pane" type="button" role="tab">
+                            <i class="bi bi-door-open-fill me-1 text-success"></i> Stage 2: Assign Examination Rooms
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold text-navy py-2" id="stage3-tab" data-bs-toggle="tab" data-bs-target="#stage3-pane" type="button" role="tab">
+                            <i class="bi bi-person-check-fill me-1 text-warning"></i> Stage 3: Assign Invigilators
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content mb-4" id="allocationStagesTabContent">
+                    <!-- STAGE 1 PANE: Timetable Schedule -->
+                    <div class="tab-pane fade show active" id="stage1-pane" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-smart mb-0" id="previewTable">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Subject</th>
+                                        <th>Subject Code</th>
+                                        <th>Department</th>
+                                        <th>Semester</th>
+                                        <th style="min-width: 170px;">Exam Date (1 Exam/Day Rule)</th>
+                                        <th>Start Time</th>
+                                        <th>End Time</th>
+                                        <th>Students</th>
+                                        <th>Assigned Hall(s)</th>
+                                        <th>Readiness</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stage1TableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex justify-content-end mt-3 no-print">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="bootstrap.Tab.getInstance(document.getElementById('stage2-tab')).show();">
+                                Next: Assign Examination Halls <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STAGE 2 PANE: Assign Examination Rooms -->
+                    <div class="tab-pane fade" id="stage2-pane" role="tabpanel">
+                        <div class="alert alert-light border py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-info-circle-fill text-primary fs-5 flex-shrink-0"></i>
+                            <div>
+                                <strong>Smart Examination Room Allocation:</strong> Displays ONLY examination halls available on that specific examination date. Compares room capacity vs student count. If student count exceeds a single hall, multiple halls can be assigned simultaneously.
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-smart mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Subject & Code</th>
+                                        <th>Exam Date</th>
+                                        <th>Students</th>
+                                        <th style="min-width: 240px;">Select Available Hall on Date</th>
+                                        <th style="min-width: 200px;">Allocated Hall(s)</th>
+                                        <th>Allocated Capacity</th>
+                                        <th>Capacity Status</th>
+                                        <th class="no-print">Quick Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stage2TableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex justify-content-between mt-3 no-print">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="bootstrap.Tab.getInstance(document.getElementById('stage1-tab')).show();">
+                                <i class="bi bi-arrow-left me-1"></i> Back to Timetable
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="bootstrap.Tab.getInstance(document.getElementById('stage3-tab')).show();">
+                                Next: Assign Faculty Invigilators <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STAGE 3 PANE: Assign Invigilators -->
+                    <div class="tab-pane fade" id="stage3-pane" role="tabpanel">
+                        <div class="alert alert-light border py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-info-circle-fill text-primary fs-5 flex-shrink-0"></i>
+                            <div>
+                                <strong>Smart Invigilator / Faculty Allocation:</strong> Displays ONLY faculty members available on the exam date without same-day duty conflicts and within their duty caps. Standard rule: 1 invigilator per hall, or 2 if hall capacity > 70 or student count > 40.
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-smart mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Subject & Code</th>
+                                        <th>Exam Date</th>
+                                        <th>Allocated Hall(s)</th>
+                                        <th>Required Invigilators</th>
+                                        <th style="min-width: 250px;">Select Available Faculty on Date</th>
+                                        <th style="min-width: 200px;">Assigned Invigilators</th>
+                                        <th>Staffing Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stage3TableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex justify-content-start mt-3 no-print">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="bootstrap.Tab.getInstance(document.getElementById('stage2-tab')).show();">
+                                <i class="bi bi-arrow-left me-1"></i> Back to Halls
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pre-save Validation Warning Box -->
+                <div id="batchValidationAlert" class="mb-3"></div>
+
+                <div class="p-3 rounded-3 bg-light border d-flex justify-content-between align-items-center flex-wrap gap-2 no-print">
+                    <div class="small text-muted">
+                        <i class="bi bi-shield-check text-success me-1"></i>
+                        <strong>Complete Transactional Integration:</strong> Examination timetable, multi-room seating distributions, and faculty duties are committed atomically. Notifications are dispatched to student & faculty dashboards upon confirmation.
+                    </div>
+                    <button type="submit" id="confirmSaveBatchBtn" class="btn btn-success px-4 py-2 fw-bold">
+                        <i class="bi bi-check-circle-fill me-2"></i> Confirm & Publish Timetable (With Rooms, Seating & Invigilators)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="none">
+    document.addEventListener('DOMContentLoaded', function () {
+        const deptSelect = document.getElementById('ttDeptSelect');
+        const semSelect = document.getElementById('ttSemSelect');
+        const startDateInput = document.getElementById('ttStartDate');
+        const durationInput = document.getElementById('ttDuration');
+        const excludeSundaysCheck = document.getElementById('excludeSundaysCheck');
+        const cohortCard = document.getElementById('cohortSummaryCard');
+        const generateBtn = document.getElementById('generatePreviewBtn');
+        const previewSection = document.getElementById('timetablePreviewSection');
+        const previewTbody = document.getElementById('previewTableBody');
+        const resetBtn = document.getElementById('resetPreviewBtn');
+        const confirmBtn = document.getElementById('confirmSaveBatchBtn');
+        const batchAlert = document.getElementById('batchValidationAlert');
+
+        let bookedDatesSet = new Set();
+        let currentCohortSubjects = [];
+        let currentStudentCount = 0;
+
+        // Fetch all existing booked dates across the entire institution
+        function fetchBookedDates() {
+            fetch('/admin/examinations/booked-dates')
+                .then(r => r.json())
+                .then(dates => {
+                    bookedDatesSet = new Set(dates);
+                })
+                .catch(err => console.error('Error fetching booked dates:', err));
+        }
+        fetchBookedDates();
+
+        // Dynamic update of Cohort Summary when Department or Semester changes
+        function updateCohortInfo() {
+            const deptId = deptSelect.value;
+            const sem = semSelect.value;
+
+            if (!deptId || !sem) {
+                generateBtn.disabled = true;
+                cohortCard.className = 'p-3 rounded-3 border bg-light';
+                cohortCard.innerHTML = `
+                    <div class="text-muted small">
+                        <i class="bi bi-info-circle me-1 text-primary"></i>
+                        Please select both Department / Course and Semester to proceed.
+                    </div>
+                `;
+                return;
+            }
+
+            cohortCard.className = 'p-3 rounded-3 border bg-light';
+            cohortCard.innerHTML = '<div class="text-muted small"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>Fetching cohort records and subjects from MySQL...</div>';
+
+            // Fetch student count and subjects in parallel
+            Promise.all([
+                fetch(`/admin/examinations/student-count?departmentId=${encodeURIComponent(deptId)}&semester=${encodeURIComponent(sem)}`).then(r => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                    return r.json();
+                }),
+                fetch(`/admin/examinations/subjects?departmentId=${encodeURIComponent(deptId)}&semester=${encodeURIComponent(sem)}`).then(r => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                    return r.json();
+                })
+            ])
+            .then(([countData, subjectsData]) => {
+                currentStudentCount = countData.count || 0;
+                currentCohortSubjects = subjectsData || [];
+
+                const deptText = deptSelect.options[deptSelect.selectedIndex]?.text || 'Selected Department';
+
+                if (!Array.isArray(currentCohortSubjects) || currentCohortSubjects.length === 0) {
+                    generateBtn.disabled = true;
+                    cohortCard.className = 'p-3 rounded-3 border border-warning-subtle bg-warning-subtle';
+                    cohortCard.innerHTML = `
+                        <div class="d-flex align-items-center gap-2 text-dark small">
+                            <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                            <div>
+                                <strong>No Subjects Found:</strong> There are no subjects mapped to <strong>${deptText}</strong> for <strong>Semester ${sem}</strong>.
+                                <br><span class="text-muted">Please add subjects under Subject Management before generating a timetable.</span>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                generateBtn.disabled = false;
+                const subjectsChips = currentCohortSubjects.map(s => {
+                    const code = s.subjectCode || 'N/A';
+                    const name = s.subjectName || 'Subject';
+                    return `
+                        <div class="subject-chip">
+                            <span class="chip-code">${code}</span>
+                            <span class="chip-name">${name}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                cohortCard.className = 'p-3 rounded-3 border border-primary-subtle bg-primary-subtle';
+                cohortCard.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <div>
+                            <span class="badge bg-primary me-2 px-2 py-1">Cohort Confirmed</span>
+                            <strong class="text-navy fs-6">${countData.departmentName || deptText} &mdash; Semester ${sem}</strong>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <span class="badge bg-navy text-white px-2 py-1" style="font-size: 0.8rem;">
+                                <i class="bi bi-people-fill me-1"></i> ${currentStudentCount} Eligible Students
+                            </span>
+                            <span class="badge bg-white text-dark border px-2 py-1" style="font-size: 0.8rem;">
+                                <i class="bi bi-journal-bookmark-fill me-1 text-primary"></i> ${currentCohortSubjects.length} Applicable Subjects
+                            </span>
+                        </div>
+                    </div>
+                    <div class="small text-secondary fw-semibold mb-2">Applicable Curriculum Subjects for this Examination Schedule:</div>
+                    <div class="d-flex flex-wrap align-items-center" style="margin: -4px;">${subjectsChips}</div>
+                `;
+            })
+            .catch(err => {
+                console.error('Error fetching cohort data:', err);
+                cohortCard.className = 'p-3 rounded-3 border border-danger-subtle bg-danger-subtle text-danger small';
+                cohortCard.innerHTML = `
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-exclamation-circle-fill fs-5 text-danger"></i>
+                        <div>
+                            <strong>Failed to retrieve cohort details:</strong> Could not load subjects or student count from the database.
+                            <br><span class="text-muted small">Please verify server connectivity or refresh the page.</span>
+                        </div>
+                    </div>
+                `;
+                generateBtn.disabled = true;
+            });
+        }
+
+        deptSelect.addEventListener('change', updateCohortInfo);
+        semSelect.addEventListener('change', updateCohortInfo);
+
+        // Progress helper
+        const progressContainer = document.getElementById('generationProgressContainer');
+        const progressBar = document.getElementById('generationProgressBar');
+        const progressStatusText = document.getElementById('progressStatusText');
+        const progressPercentageText = document.getElementById('progressPercentageText');
+
+        function setProgress(percent, text) {
+            if (progressContainer) progressContainer.style.display = 'block';
+            if (progressBar) progressBar.style.width = percent + '%';
+            if (progressPercentageText) progressPercentageText.textContent = percent + '%';
+            if (progressStatusText) progressStatusText.textContent = text;
+        }
+
+        function hideProgress() {
+            if (progressContainer) progressContainer.style.display = 'none';
+        }
+
+        // Generate Complete Timetable Preview
+        generateBtn.addEventListener('click', function () {
+            const deptId = deptSelect.value;
+            const sem = semSelect.value;
+            let startDate = startDateInput.value;
+            const duration = durationInput.value || 180;
+            const excludeSundays = excludeSundaysCheck.checked;
+
+            if (!deptId || !sem) {
+                alert('Please select both Department / Academic Course and Semester first.');
+                return;
+            }
+
+            if (!startDate) {
+                const d = new Date();
+                d.setDate(d.getDate() + 7);
+                startDate = d.toISOString().split('T')[0];
+                startDateInput.value = startDate;
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            if (startDate < today) {
+                alert('Examination start date cannot be in the past. Please select an upcoming date.');
+                return;
+            }
+
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Computing Conflict-Free Schedule...';
+
+            setProgress(25, 'Validating curriculum subjects and student eligibility in MySQL...');
+
+            const url = `/admin/schedule/preview?departmentId=${encodeURIComponent(deptId)}&semester=${encodeURIComponent(sem)}&startDate=${encodeURIComponent(startDate)}&durationMinutes=${encodeURIComponent(duration)}&excludeSundays=${excludeSundays}`;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+            setTimeout(() => setProgress(60, 'Enforcing 1-exam-per-day restriction & assigning exam rooms...'), 150);
+
+            fetch(url, { signal: controller.signal })
+                .then(r => {
+                    clearTimeout(timeoutId);
+                    if (!r.ok) {
+                        return r.text().then(text => {
+                            let msg = `Server returned HTTP ${r.status}`;
+                            try {
+                                const errObj = JSON.parse(text);
+                                if (errObj.message) msg = errObj.message;
+                                else if (errObj.error) msg = errObj.error;
+                            } catch(e) {}
+                            throw new Error(msg);
+                        });
+                    }
+                    return r.json();
+                })
+                .then(items => {
+                    setProgress(100, 'Complete timetable generated successfully!');
+                    setTimeout(hideProgress, 800);
+
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="bi bi-magic me-2"></i> Generate Complete Timetable';
+
+                    if (!Array.isArray(items) || items.length === 0) {
+                        alert('No subjects could be scheduled. Please verify subject and room configurations.');
+                        return;
+                    }
+
+                    try {
+                        initAllocationDashboard(items, deptId, sem);
+                    } catch (renderErr) {
+                        console.error('Error initializing allocation dashboard:', renderErr);
+                        alert('Error initializing allocation dashboard: ' + renderErr.message);
+                    }
+                })
+                .catch(err => {
+                    clearTimeout(timeoutId);
+                    hideProgress();
+                    console.error('Error generating preview:', err);
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="bi bi-magic me-2"></i> Generate Complete Timetable';
+                    if (err.name === 'AbortError') {
+                        alert('Schedule generation timed out. Please verify server connection and try again.');
+                    } else {
+                        alert('Error calculating timetable: ' + (err.message || 'Please verify server connection.'));
+                    }
+                });
+        });
+
+        // =========================================================================
+        // INTEGRATED 3-STAGE EXAMINATION ALLOCATION DASHBOARD ENGINE
+        // =========================================================================
+        let currentTimetableItems = [];
+        let currentBatchDeptId = null;
+        let currentBatchSem = null;
+        const roomCacheByDate = new Map();
+        const facultyCacheByDate = new Map();
+
+        const stage1Tbody = document.getElementById('stage1TableBody');
+        const stage2Tbody = document.getElementById('stage2TableBody');
+        const stage3Tbody = document.getElementById('stage3TableBody');
+        const hiddenInputsContainer = document.getElementById('hiddenBatchInputsContainer');
+
+        function initAllocationDashboard(items, deptId, sem) {
+            currentBatchDeptId = deptId;
+            currentBatchSem = sem;
+
+            const batchDeptEl = document.getElementById('batchConfirmDeptId');
+            if (batchDeptEl) batchDeptEl.value = deptId;
+            const batchSemEl = document.getElementById('batchConfirmSemester');
+            if (batchSemEl) batchSemEl.value = sem;
+
+            const deptText = deptSelect.options[deptSelect.selectedIndex]?.text || 'Selected Department';
+            const deptSemLabel = document.getElementById('previewDeptSemLabel');
+            if (deptSemLabel) deptSemLabel.textContent = `${deptText} (Sem ${sem})`;
+
+            const subCountEl = document.getElementById('previewSubjectsCount');
+            if (subCountEl) subCountEl.textContent = items.length;
+
+            const stuCountEl = document.getElementById('previewStudentCount');
+            if (stuCountEl) stuCountEl.textContent = currentStudentCount;
+
+            const printDetailsEl = document.getElementById('printScopeDetails');
+            if (printDetailsEl) printDetailsEl.textContent = `${deptText} - Semester ${sem} Examination Timetable | Total Registered Students: ${currentStudentCount}`;
+
+            // Initialize deep item data models
+            currentTimetableItems = items.map((raw, idx) => {
+                const startStr = raw.startTime ? (typeof raw.startTime === 'string' ? raw.startTime.substring(0, 5) : '10:00') : '10:00';
+                const endStr = raw.endTime ? (typeof raw.endTime === 'string' ? raw.endTime.substring(0, 5) : '13:00') : '13:00';
+                const sCount = raw.studentCount != null ? raw.studentCount : currentStudentCount;
+
+                const item = {
+                    index: idx,
+                    subjectId: raw.subjectId,
+                    subjectName: raw.subjectName || 'Subject ' + (idx + 1),
+                    subjectCode: raw.subjectCode || 'SUB' + (idx + 1),
+                    departmentId: raw.departmentId || deptId,
+                    departmentCode: raw.departmentCode || 'MCA',
+                    departmentName: raw.departmentName || deptText,
+                    semester: raw.semester != null ? raw.semester : sem,
+                    examDate: raw.examDate,
+                    startTime: startStr,
+                    endTime: endStr,
+                    durationMinutes: raw.durationMinutes || 180,
+                    studentCount: sCount,
+                    roomIds: raw.roomIds && raw.roomIds.length > 0 ? [...raw.roomIds] : (raw.roomId ? [raw.roomId] : []),
+                    roomDetails: [],
+                    totalCapacity: raw.totalAllocatedCapacity || (raw.roomCapacity || 0),
+                    facultyIds: raw.facultyIds && raw.facultyIds.length > 0 ? [...raw.facultyIds] : [],
+                    facultyDetails: [],
+                    requiredInvigilators: raw.requiredInvigilators || 1,
+                    roomStatus: raw.roomStatus || 'PENDING',
+                    invigilatorStatus: raw.invigilatorStatus || 'PENDING',
+                    readinessStatus: raw.readinessStatus || 'NEEDS_ROOM'
+                };
+
+                // Prefill room details if available
+                if (raw.roomNumber && raw.roomId) {
+                    item.roomDetails.push({
+                        id: raw.roomId,
+                        roomNumber: raw.roomNumber,
+                        building: 'Campus',
+                        capacity: raw.roomCapacity || 60
+                    });
+                }
+                return item;
+            });
+
+            renderAllStages();
+            previewSection.style.display = 'block';
+            previewSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Fetch rooms available on a date (cached)
+        async function fetchRoomsForDate(dateStr) {
+            if (!dateStr) return [];
+            if (roomCacheByDate.has(dateStr)) return roomCacheByDate.get(dateStr);
+            try {
+                const res = await fetch(`/admin/schedule/rooms-on-date?date=${encodeURIComponent(dateStr)}`);
+                if (!res.ok) return [];
+                const rooms = await res.json();
+                roomCacheByDate.set(dateStr, rooms);
+                return rooms;
+            } catch (e) {
+                console.error('Error fetching rooms on date:', e);
+                return [];
+            }
+        }
+
+        // Fetch faculty available on a date (cached)
+        async function fetchFacultyForDate(dateStr) {
+            if (!dateStr) return [];
+            if (facultyCacheByDate.has(dateStr)) return facultyCacheByDate.get(dateStr);
+            try {
+                const res = await fetch(`/admin/schedule/faculty-on-date?date=${encodeURIComponent(dateStr)}`);
+                if (!res.ok) return [];
+                const faculty = await res.json();
+                facultyCacheByDate.set(dateStr, faculty);
+                return faculty;
+            } catch (e) {
+                console.error('Error fetching faculty on date:', e);
+                return [];
+            }
+        }
+
+        // Calculate and refresh metrics across all items
+        function refreshItemMetrics(item) {
+            // Capacity check
+            const totalCap = item.roomDetails.reduce((acc, r) => acc + (r.capacity || 0), 0);
+            item.totalCapacity = totalCap;
+            const remainingSeats = totalCap - item.studentCount;
+            item.remainingSeats = remainingSeats;
+
+            if (item.roomIds.length === 0) {
+                item.roomStatus = 'PENDING';
+            } else if (remainingSeats >= 0) {
+                item.roomStatus = 'SUFFICIENT';
+            } else {
+                item.roomStatus = 'INSUFFICIENT';
+            }
+
+            // Required invigilators: 1 per room, or 2 if total capacity > 70 or students > 40
+            const numRooms = Math.max(1, item.roomIds.length);
+            let reqInv = numRooms;
+            if (totalCap > 70 || item.studentCount > 40) {
+                reqInv = Math.max(reqInv, 2);
+            }
+            item.requiredInvigilators = reqInv;
+
+            // Invigilator staffing check
+            if (item.facultyIds.length === 0) {
+                item.invigilatorStatus = 'PENDING';
+            } else if (item.facultyIds.length >= reqInv) {
+                item.invigilatorStatus = 'FULLY_STAFFED';
+            } else {
+                item.invigilatorStatus = 'NEEDS_INVIGILATOR';
+            }
+
+            // Overall Readiness
+            if (item.roomStatus === 'SUFFICIENT' && item.invigilatorStatus === 'FULLY_STAFFED') {
+                item.readinessStatus = 'READY';
+            } else if (item.roomStatus !== 'SUFFICIENT') {
+                item.readinessStatus = 'NEEDS_ROOM';
+            } else {
+                item.readinessStatus = 'NEEDS_INVIGILATOR';
+            }
+        }
+
+        // Re-render everything
+        function renderAllStages() {
+            currentTimetableItems.forEach(refreshItemMetrics);
+            renderSummaryCards();
+            renderStage1Table();
+            renderStage2Table();
+            renderStage3Table();
+            syncHiddenFormInputs();
+            validateAllPreviewDates();
+        }
+
+        // 1. SUMMARY CARDS
+        function renderSummaryCards() {
+            const total = currentTimetableItems.length;
+            const withRooms = currentTimetableItems.filter(i => i.roomStatus === 'SUFFICIENT').length;
+            const withoutRooms = total - withRooms;
+            const totalHallsAllocated = currentTimetableItems.reduce((acc, i) => acc + i.roomIds.length, 0);
+
+            const withFaculty = currentTimetableItems.filter(i => i.invigilatorStatus === 'FULLY_STAFFED').length;
+            const withoutFaculty = total - withFaculty;
+            const totalDutiesAssigned = currentTimetableItems.reduce((acc, i) => acc + i.facultyIds.length, 0);
+
+            const allReady = total > 0 && currentTimetableItems.every(i => i.readinessStatus === 'READY');
+
+            document.getElementById('statExamsWithRooms').textContent = withRooms;
+            document.getElementById('statTotalExamsRooms').textContent = total;
+            document.getElementById('statRoomsBadge').textContent = `${totalHallsAllocated} Halls`;
+            const noRoomsLbl = document.getElementById('statExamsWithoutRoomsLabel');
+            if (withoutRooms === 0) {
+                noRoomsLbl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> All halls allocated</span>';
+            } else {
+                noRoomsLbl.innerHTML = `<span class="text-danger fw-semibold">${withoutRooms} exam(s) need halls</span>`;
+            }
+
+            document.getElementById('statExamsWithFaculty').textContent = withFaculty;
+            document.getElementById('statTotalExamsFaculty').textContent = total;
+            document.getElementById('statFacultyBadge').textContent = `${totalDutiesAssigned} Duties`;
+            const noFacultyLbl = document.getElementById('statExamsWithoutFacultyLabel');
+            if (withoutFaculty === 0) {
+                noFacultyLbl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> All fully staffed</span>';
+            } else {
+                noFacultyLbl.innerHTML = `<span class="text-warning-emphasis fw-semibold">${withoutFaculty} exam(s) need faculty</span>`;
+            }
+
+            const readinessBadgeContainer = document.getElementById('statOverallReadinessBadge');
+            if (allReady) {
+                readinessBadgeContainer.innerHTML = '<span class="badge bg-success px-3 py-2" style="font-size:0.85rem;"><i class="bi bi-check-all me-1"></i> READY TO PUBLISH</span>';
+            } else {
+                readinessBadgeContainer.innerHTML = '<span class="badge bg-warning text-dark px-3 py-2" style="font-size:0.85rem;"><i class="bi bi-clock-history me-1"></i> ALLOCATION PENDING</span>';
+            }
+        }
+
+        // 2. STAGE 1: TIMETABLE SCHEDULE TABLE
+        function renderStage1Table() {
+            if (!stage1Tbody) return;
+            stage1Tbody.innerHTML = '';
+
+            currentTimetableItems.forEach((item, idx) => {
+                const tr = document.createElement('tr');
+                const hallsText = item.roomDetails.length > 0
+                    ? item.roomDetails.map(r => r.roomNumber).join(', ')
+                    : '<span class="text-danger fst-italic">Unassigned</span>';
+
+                let readinessBadge = '';
+                if (item.readinessStatus === 'READY') {
+                    readinessBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check2-all me-1"></i>READY</span>';
+                } else if (item.readinessStatus === 'NEEDS_ROOM') {
+                    readinessBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-door-closed me-1"></i>NEEDS ROOM</span>';
+                } else {
+                    readinessBadge = '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"><i class="bi bi-person-exclamation me-1"></i>NEEDS FACULTY</span>';
+                }
+
+                tr.innerHTML = `
+                    <td class="text-muted fw-bold">${idx + 1}</td>
+                    <td><strong class="text-navy">${item.subjectName}</strong></td>
+                    <td><span class="badge bg-light text-dark border font-monospace">${item.subjectCode}</span></td>
+                    <td><span class="badge bg-light text-primary border">${item.departmentCode}</span> <small class="text-muted">Sem ${item.semester}</small></td>
+                    <td>Sem ${item.semester}</td>
+                    <td>
+                        <input type="date" class="form-control form-control-sm tt-row-date"
+                               data-index="${idx}" value="${item.examDate}"
+                               min="${new Date().toISOString().split('T')[0]}" required>
+                        <div class="tt-row-status small mt-1"></div>
+                    </td>
+                    <td><span class="badge bg-light text-secondary border">${item.startTime}</span></td>
+                    <td><span class="badge bg-light text-secondary border">${item.endTime}</span></td>
+                    <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle">${item.studentCount} Students</span></td>
+                    <td><small class="fw-semibold text-navy">${hallsText}</small></td>
+                    <td>${readinessBadge}</td>
+                `;
+                stage1Tbody.appendChild(tr);
+            });
+
+            // Bind date change listeners
+            const dateInputs = stage1Tbody.querySelectorAll('.tt-row-date');
+            dateInputs.forEach(input => {
+                input.addEventListener('change', function () {
+                    const idx = parseInt(this.dataset.index, 10);
+                    const newDate = this.value;
+                    currentTimetableItems[idx].examDate = newDate;
+
+                    // Clear room and faculty allocations for this item because the date changed!
+                    currentTimetableItems[idx].roomIds = [];
+                    currentTimetableItems[idx].roomDetails = [];
+                    currentTimetableItems[idx].facultyIds = [];
+                    currentTimetableItems[idx].facultyDetails = [];
+
+                    renderAllStages();
+                });
+            });
+        }
+
+        // 3. STAGE 2: ASSIGN EXAMINATION ROOMS TABLE
+        async function renderStage2Table() {
+            if (!stage2Tbody) return;
+            stage2Tbody.innerHTML = '';
+
+            for (let idx = 0; idx < currentTimetableItems.length; idx++) {
+                const item = currentTimetableItems[idx];
+                const tr = document.createElement('tr');
+
+                // Available rooms on that date
+                const availableRooms = await fetchRoomsForDate(item.examDate);
+
+                // Build rooms dropdown options
+                let roomOptionsHtml = '<option value="">-- Choose Hall on this Date --</option>';
+                availableRooms.forEach(r => {
+                    const isAlreadySelected = item.roomIds.includes(r.id);
+                    if (!isAlreadySelected) {
+                        roomOptionsHtml += `<option value="${r.id}" data-cap="${r.capacity}" data-num="${r.roomNumber}" data-bld="${r.building}">
+                            ${r.roomNumber} (${r.building}) - Capacity: ${r.capacity} seats
+                        </option>`;
+                    }
+                });
+
+                // Build selected rooms pills
+                let selectedPillsHtml = '';
+                if (item.roomDetails.length === 0) {
+                    selectedPillsHtml = '<span class="text-muted small fst-italic">No hall assigned yet</span>';
+                } else {
+                    selectedPillsHtml = item.roomDetails.map(r => `
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1 mb-1 p-1 px-2" style="font-size:0.8rem;">
+                            <i class="bi bi-door-open me-1"></i>${r.roomNumber} (${r.capacity} seats)
+                            <button type="button" class="btn-close btn-close-sm ms-1 remove-room-btn" data-item-idx="${idx}" data-room-id="${r.id}" style="font-size:0.55rem;"></button>
+                        </span>
+                    `).join('');
+                }
+
+                // Capacity status
+                let capStatusHtml = '';
+                const diff = item.totalCapacity - item.studentCount;
+                if (item.roomIds.length === 0) {
+                    capStatusHtml = '<span class="badge bg-secondary">Unassigned</span>';
+                } else if (diff >= 0) {
+                    capStatusHtml = `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Sufficient (+${diff} seats)</span>`;
+                } else {
+                    capStatusHtml = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-exclamation-triangle me-1"></i>Shortfall (${Math.abs(diff)} seats)</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="text-muted fw-bold">${idx + 1}</td>
+                    <td>
+                        <strong class="text-navy">${item.subjectName}</strong>
+                        <small class="text-muted d-block">${item.subjectCode}</small>
+                    </td>
+                    <td><span class="badge bg-light text-dark border font-monospace">${item.examDate}</span></td>
+                    <td><span class="badge bg-primary-subtle text-primary border">${item.studentCount} Students</span></td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <select class="form-select form-select-sm stage2-room-select" id="roomSelect_${idx}">
+                                ${roomOptionsHtml}
+                            </select>
+                            <button type="button" class="btn btn-outline-primary btn-sm stage2-add-room-btn" data-index="${idx}">
+                                <i class="bi bi-plus-lg"></i> Add
+                            </button>
+                        </div>
+                    </td>
+                    <td><div class="d-flex flex-wrap">${selectedPillsHtml}</div></td>
+                    <td><strong class="text-navy">${item.totalCapacity}</strong> <small class="text-muted">seats</small></td>
+                    <td>${capStatusHtml}</td>
+                    <td class="no-print">
+                        <button type="button" class="btn btn-sm btn-outline-secondary stage2-autofit-btn" data-index="${idx}" title="Automatically fit rooms on this date">
+                            <i class="bi bi-magic me-1"></i> Auto-Fit
+                        </button>
+                    </td>
+                `;
+                stage2Tbody.appendChild(tr);
+            }
+
+            // Bind Add Room buttons
+            stage2Tbody.querySelectorAll('.stage2-add-room-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const idx = parseInt(this.dataset.index, 10);
+                    const sel = document.getElementById(`roomSelect_${idx}`);
+                    const roomId = parseInt(sel.value, 10);
+                    if (!roomId) return;
+
+                    const opt = sel.selectedOptions[0];
+                    const cap = parseInt(opt.dataset.cap, 10);
+                    const num = opt.dataset.num;
+                    const bld = opt.dataset.bld;
+
+                    const item = currentTimetableItems[idx];
+                    if (!item.roomIds.includes(roomId)) {
+                        item.roomIds.push(roomId);
+                        item.roomDetails.push({ id: roomId, roomNumber: num, building: bld, capacity: cap });
+                        renderAllStages();
+                    }
+                });
+            });
+
+            // Bind Remove Room buttons
+            stage2Tbody.querySelectorAll('.remove-room-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const idx = parseInt(this.dataset.itemIdx, 10);
+                    const roomId = parseInt(this.dataset.roomId, 10);
+                    const item = currentTimetableItems[idx];
+                    item.roomIds = item.roomIds.filter(id => id !== roomId);
+                    item.roomDetails = item.roomDetails.filter(r => r.id !== roomId);
+                    renderAllStages();
+                });
+            });
+
+            // Bind Auto-fit button
+            stage2Tbody.querySelectorAll('.stage2-autofit-btn').forEach(btn => {
+                btn.addEventListener('click', async function () {
+                    const idx = parseInt(this.dataset.index, 10);
+                    const item = currentTimetableItems[idx];
+                    const rooms = await fetchRoomsForDate(item.examDate);
+                    rooms.sort((a, b) => b.capacity - a.capacity);
+
+                    item.roomIds = [];
+                    item.roomDetails = [];
+
+                    // Try single room
+                    let found = false;
+                    for (const r of rooms) {
+                        if (r.capacity >= item.studentCount) {
+                            item.roomIds.push(r.id);
+                            item.roomDetails.push({ id: r.id, roomNumber: r.roomNumber, building: r.building, capacity: r.capacity });
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    // Try multi-room if needed
+                    if (!found && rooms.length > 0) {
+                        let capAcc = 0;
+                        for (const r of rooms) {
+                            item.roomIds.push(r.id);
+                            item.roomDetails.push({ id: r.id, roomNumber: r.roomNumber, building: r.building, capacity: r.capacity });
+                            capAcc += r.capacity;
+                            if (capAcc >= item.studentCount) break;
+                        }
+                    }
+
+                    renderAllStages();
+                });
+            });
+        }
+
+        // 4. STAGE 3: ASSIGN INVIGILATORS TABLE
+        async function renderStage3Table() {
+            if (!stage3Tbody) return;
+            stage3Tbody.innerHTML = '';
+
+            for (let idx = 0; idx < currentTimetableItems.length; idx++) {
+                const item = currentTimetableItems[idx];
+                const tr = document.createElement('tr');
+
+                const availableFaculty = await fetchFacultyForDate(item.examDate);
+
+                // Build faculty dropdown options
+                let facultyOptionsHtml = '<option value="">-- Choose Faculty Available on this Date --</option>';
+                availableFaculty.forEach(f => {
+                    const isAlreadyAssigned = item.facultyIds.includes(f.id);
+                    if (!isAlreadyAssigned) {
+                        facultyOptionsHtml += `<option value="${f.id}" data-name="${f.fullName}" data-dept="${f.departmentCode}" data-duties="${f.currentDuties}">
+                            ${f.displayText || f.fullName + ' (' + f.departmentCode + ')'}
+                        </option>`;
+                    }
+                });
+
+                // Build assigned faculty pills
+                let assignedPillsHtml = '';
+                if (item.facultyDetails.length === 0) {
+                    assignedPillsHtml = '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small"><i class="bi bi-exclamation-triangle me-1"></i>Faculty Assignment Pending</span>';
+                } else {
+                    assignedPillsHtml = item.facultyDetails.map(f => `
+                        <span class="badge bg-info-subtle text-dark border border-info-subtle me-1 mb-1 p-1 px-2" style="font-size:0.8rem;">
+                            <i class="bi bi-person me-1 text-primary"></i>${f.fullName} (${f.departmentCode})
+                            <button type="button" class="btn-close btn-close-sm ms-1 remove-faculty-btn" data-item-idx="${idx}" data-faculty-id="${f.id}" style="font-size:0.55rem;"></button>
+                        </span>
+                    `).join('');
+                }
+
+                // Staffing status
+                let staffStatusHtml = '';
+                if (item.facultyIds.length >= item.requiredInvigilators) {
+                    staffStatusHtml = `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Fully Staffed (${item.facultyIds.length}/${item.requiredInvigilators})</span>`;
+                } else {
+                    staffStatusHtml = `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"><i class="bi bi-clock-history me-1"></i>Needs Staff (${item.facultyIds.length}/${item.requiredInvigilators})</span>`;
+                }
+
+                const hallsText = item.roomDetails.length > 0
+                    ? item.roomDetails.map(r => r.roomNumber).join(', ')
+                    : '<span class="text-muted small">No hall</span>';
+
+                tr.innerHTML = `
+                    <td class="text-muted fw-bold">${idx + 1}</td>
+                    <td>
+                        <strong class="text-navy">${item.subjectName}</strong>
+                        <small class="text-muted d-block">${item.subjectCode}</small>
+                    </td>
+                    <td><span class="badge bg-light text-dark border font-monospace">${item.examDate}</span></td>
+                    <td><small class="fw-semibold text-navy">${hallsText}</small></td>
+                    <td><span class="badge bg-secondary px-2 py-1">${item.requiredInvigilators} Required</span></td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <select class="form-select form-select-sm stage3-faculty-select" id="facultySelect_${idx}">
+                                ${facultyOptionsHtml}
+                            </select>
+                            <button type="button" class="btn btn-outline-primary btn-sm stage3-add-faculty-btn" data-index="${idx}">
+                                <i class="bi bi-plus-lg"></i> Assign
+                            </button>
+                        </div>
+                    </td>
+                    <td><div class="d-flex flex-wrap">${assignedPillsHtml}</div></td>
+                    <td>${staffStatusHtml}</td>
+                `;
+                stage3Tbody.appendChild(tr);
+            }
+
+            // Bind Add Faculty buttons
+            stage3Tbody.querySelectorAll('.stage3-add-faculty-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const idx = parseInt(this.dataset.index, 10);
+                    const sel = document.getElementById(`facultySelect_${idx}`);
+                    const facultyId = parseInt(sel.value, 10);
+                    if (!facultyId) return;
+
+                    const opt = sel.selectedOptions[0];
+                    const name = opt.dataset.name;
+                    const dept = opt.dataset.dept;
+
+                    const item = currentTimetableItems[idx];
+                    if (!item.facultyIds.includes(facultyId)) {
+                        item.facultyIds.push(facultyId);
+                        item.facultyDetails.push({ id: facultyId, fullName: name, departmentCode: dept });
+                        renderAllStages();
+                    }
+                });
+            });
+
+            // Bind Remove Faculty buttons
+            stage3Tbody.querySelectorAll('.remove-faculty-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const idx = parseInt(this.dataset.itemIdx, 10);
+                    const facultyId = parseInt(this.dataset.facultyId, 10);
+                    const item = currentTimetableItems[idx];
+                    item.facultyIds = item.facultyIds.filter(id => id !== facultyId);
+                    item.facultyDetails = item.facultyDetails.filter(f => f.id !== facultyId);
+                    renderAllStages();
+                });
+            });
+        }
+
+        // 5. ONE-CLICK AUTOMATIC ALLOCATION FOR ALL EXAMS
+        const autoAllocateAllBtn = document.getElementById('autoAllocateAllBtn');
+        if (autoAllocateAllBtn) {
+            autoAllocateAllBtn.addEventListener('click', async function () {
+                autoAllocateAllBtn.disabled = true;
+                autoAllocateAllBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Allocating Halls & Invigilators...';
+
+                try {
+                    for (let idx = 0; idx < currentTimetableItems.length; idx++) {
+                        const item = currentTimetableItems[idx];
+
+                        // 1. Allocate Rooms
+                        const rooms = await fetchRoomsForDate(item.examDate);
+                        rooms.sort((a, b) => b.capacity - a.capacity);
+
+                        item.roomIds = [];
+                        item.roomDetails = [];
+
+                        let foundRoom = false;
+                        for (const r of rooms) {
+                            if (r.capacity >= item.studentCount) {
+                                item.roomIds.push(r.id);
+                                item.roomDetails.push({ id: r.id, roomNumber: r.roomNumber, building: r.building, capacity: r.capacity });
+                                foundRoom = true;
+                                break;
+                            }
+                        }
+
+                        if (!foundRoom && rooms.length > 0) {
+                            let capAcc = 0;
+                            for (const r of rooms) {
+                                item.roomIds.push(r.id);
+                                item.roomDetails.push({ id: r.id, roomNumber: r.roomNumber, building: r.building, capacity: r.capacity });
+                                capAcc += r.capacity;
+                                if (capAcc >= item.studentCount) break;
+                            }
+                        }
+
+                        refreshItemMetrics(item);
+
+                        // 2. Allocate Invigilators
+                        const faculty = await fetchFacultyForDate(item.examDate);
+                        faculty.sort((a, b) => a.currentDuties - b.currentDuties);
+
+                        item.facultyIds = [];
+                        item.facultyDetails = [];
+
+                        for (const f of faculty) {
+                            if (item.facultyIds.length >= item.requiredInvigilators) break;
+                            item.facultyIds.push(f.id);
+                            item.facultyDetails.push({ id: f.id, fullName: f.fullName, departmentCode: f.departmentCode });
+                        }
+                    }
+
+                    renderAllStages();
+                    alert('✓ Successfully auto-allocated examination halls and faculty invigilators for all examinations with 0 date conflicts!');
+                } catch (err) {
+                    console.error('Error during auto-allocation:', err);
+                    alert('Error during auto-allocation: ' + err.message);
+                } finally {
+                    autoAllocateAllBtn.disabled = false;
+                    autoAllocateAllBtn.innerHTML = '<i class="bi bi-magic me-1"></i> Automatically Allocate Rooms & Invigilators';
+                }
+            });
+        }
+
+        // 6. SYNC HIDDEN FORM INPUTS
+        function syncHiddenFormInputs() {
+            if (!hiddenInputsContainer) return;
+            hiddenInputsContainer.innerHTML = '';
+
+            const ttExamTypeEl = document.getElementById('ttExamType');
+            const selectedExamTypeVal = ttExamTypeEl ? ttExamTypeEl.value : 'END_SEMESTER_EXAMINATION';
+            const selectedExamNameVal = ttExamTypeEl ? ttExamTypeEl.options[ttExamTypeEl.selectedIndex].text : 'End-Semester Examination';
+
+            const batchTypeInput = document.getElementById('batchConfirmExamType');
+            if (batchTypeInput) batchTypeInput.value = selectedExamTypeVal;
+            const batchNameInput = document.getElementById('batchConfirmExamName');
+            if (batchNameInput) batchNameInput.value = selectedExamNameVal;
+
+            currentTimetableItems.forEach((item, idx) => {
+                const primaryRoomId = item.roomIds.length > 0 ? item.roomIds[0] : '';
+
+                let inputsHtml = `
+                    <input type="hidden" name="items[${idx}].subjectId" value="${item.subjectId}">
+                    <input type="hidden" name="items[${idx}].examType" value="${selectedExamTypeVal}">
+                    <input type="hidden" name="items[${idx}].examName" value="${selectedExamNameVal}">
+                    <input type="hidden" name="items[${idx}].examDate" value="${item.examDate}">
+                    <input type="hidden" name="items[${idx}].startTime" value="${item.startTime}">
+                    <input type="hidden" name="items[${idx}].durationMinutes" value="${item.durationMinutes}">
+                    <input type="hidden" name="items[${idx}].roomId" value="${primaryRoomId}">
+                `;
+
+                // Multi-room IDs
+                item.roomIds.forEach(rId => {
+                    inputsHtml += `<input type="hidden" name="items[${idx}].roomIds" value="${rId}">`;
+                });
+
+                // Faculty IDs
+                item.facultyIds.forEach(fId => {
+                    inputsHtml += `<input type="hidden" name="items[${idx}].facultyIds" value="${fId}">`;
+                });
+
+                hiddenInputsContainer.innerHTML += inputsHtml;
+            });
+        }
+
+        // 7. BATCH FORM SUBMIT & DATE VALIDATIONS
+        const batchForm = document.getElementById('batchConfirmForm');
+        if (batchForm) {
+            batchForm.addEventListener('submit', function (e) {
+                if (confirmBtn.disabled) {
+                    e.preventDefault();
+                    return;
+                }
+                syncHiddenFormInputs();
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Persisting Timetable, Multi-Room Seating & Invigilators...';
+            });
+        }
+
+        function validateAllPreviewDates() {
+            const dateInputs = document.querySelectorAll('.tt-row-date');
+            const usedDatesInBatch = new Map();
+            let hasConflicts = false;
+            let conflictMsg = '';
+
+            const today = new Date().toISOString().split('T')[0];
+
+            dateInputs.forEach((input, i) => {
+                const val = input.value;
+                const statusDiv = input.parentElement.querySelector('.tt-row-status');
+
+                if (!val) {
+                    if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> Date required</span>';
+                    hasConflicts = true;
+                    return;
+                }
+
+                if (val < today) {
+                    if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> Cannot schedule in past</span>';
+                    hasConflicts = true;
+                    return;
+                }
+
+                if (usedDatesInBatch.has(val)) {
+                    if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Conflict: Date duplicate in batch</span>';
+                    input.classList.add('is-invalid');
+                    hasConflicts = true;
+                    conflictMsg = `Multiple examinations scheduled on ${val}. Global rule: Only ONE examination per day is permitted.`;
+                    return;
+                }
+                usedDatesInBatch.set(val, i);
+
+                if (bookedDatesSet.has(val)) {
+                    if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="bi bi-x-octagon-fill"></i> Conflict: Booked by other university exam</span>';
+                    input.classList.add('is-invalid');
+                    hasConflicts = true;
+                    conflictMsg = `The date ${val} is already booked by another active examination. Only ONE examination per day is permitted across the entire institution.`;
+                    return;
+                }
+
+                input.classList.remove('is-invalid');
+                if (statusDiv) statusDiv.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> Date Available</span>';
+            });
+
+            // Check if any rooms or invigilators are missing or insufficient
+            let missingHallsCount = 0;
+            let insufficientCapCount = 0;
+            currentTimetableItems.forEach(item => {
+                if (item.roomIds.length === 0) missingHallsCount++;
+                else if (item.totalCapacity < item.studentCount) insufficientCapCount++;
+            });
+
+            if (hasConflicts) {
+                confirmBtn.disabled = true;
+                batchAlert.innerHTML = `
+                    <div class="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-0">
+                        <i class="bi bi-exclamation-octagon-fill fs-5 flex-shrink-0 text-danger"></i>
+                        <div>
+                            <strong>Timetable Conflict Detected:</strong> ${conflictMsg || 'Please adjust overlapping or unavailable dates before confirming.'}
+                        </div>
+                    </div>
+                `;
+            } else if (insufficientCapCount > 0) {
+                confirmBtn.disabled = true;
+                batchAlert.innerHTML = `
+                    <div class="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-0">
+                        <i class="bi bi-door-closed-fill fs-5 flex-shrink-0 text-danger"></i>
+                        <div>
+                            <strong>Insufficient Room Capacity:</strong> ${insufficientCapCount} examination(s) have selected room capacity smaller than the registered student count. Please allocate additional rooms in Stage 2 or click <em>"Automatically Allocate Rooms & Invigilators"</em>.
+                        </div>
+                    </div>
+                `;
+            } else {
+                confirmBtn.disabled = false;
+                batchAlert.innerHTML = `
+                    <div class="alert alert-success py-2 px-3 small d-flex align-items-center gap-2 mb-0">
+                        <i class="bi bi-check-circle-fill fs-5 flex-shrink-0 text-success"></i>
+                        <div>
+                            <strong>Ready to Publish:</strong> Conflict-free dates verified. Examination halls and faculty invigilators configured. Upon confirmation, unique seats and notifications will be saved to MySQL.
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        resetBtn.addEventListener('click', function () {
+            if (confirm('Cancel and clear the current timetable preview?')) {
+                previewSection.style.display = 'none';
+                currentTimetableItems = [];
+                if (stage1Tbody) stage1Tbody.innerHTML = '';
+                if (stage2Tbody) stage2Tbody.innerHTML = '';
+                if (stage3Tbody) stage3Tbody.innerHTML = '';
+                if (hiddenInputsContainer) hiddenInputsContainer.innerHTML = '';
+                batchAlert.innerHTML = '';
+            }
+        });
+    });
+</script>
+</body>
+</html>

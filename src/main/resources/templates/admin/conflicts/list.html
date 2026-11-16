@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conflict Diagnostic & Resolution Engine | SmartExam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/dashboard-common.css}">
+    <style>
+        :root { --navy: #0f172a; --blue: #2563eb; --sidebar-width: 260px; }
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f1f5f9; color: #1e293b; margin: 0; }
+        .sidebar { position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100vh; background: var(--navy); z-index: 1000; display: flex; flex-direction: column; overflow-y: auto; }
+        .main-wrapper { margin-left: var(--sidebar-width); min-height: 100vh; display: flex; flex-direction: column; }
+        .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar-title { font-size: 1.05rem; font-weight: 600; color: var(--navy); }
+        .page-content { padding: 26px 28px; flex: 1; }
+        .content-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
+        .content-card-header { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
+        .conflict-card {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            transition: all 0.15s ease-in-out;
+            cursor: pointer;
+        }
+        .conflict-card:hover {
+            background-color: #f8fafc;
+            border-left: 4px solid #ef4444;
+            padding-left: 16px;
+        }
+        .conflict-card:last-child { border-bottom: none; }
+        .severity-pill { font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; }
+        .severity-CRITICAL { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .severity-HIGH { background: #ffedd5; color: #c2410c; border: 1px solid #fdba74; }
+        .severity-MEDIUM { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+        .severity-LOW { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: roleSidebar('conflicts')}"></div>
+
+<div class="main-wrapper">
+    <header class="topbar">
+        <div class="topbar-title">Real-Time Examination Conflict Diagnostic Engine</div>
+        <div class="d-flex gap-2">
+            <a href="/admin/conflicts" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-clockwise me-1"></i> Re-Scan</a>
+            <a href="/admin/schedule/generate" class="btn btn-sm btn-primary" style="background:#2563eb;border:none;"><i class="bi bi-magic me-1"></i> Auto Timetable Generator</a>
+        </div>
+    </header>
+
+    <div class="page-content">
+        <div th:if="${successMsg}" class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMsg}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${errorMsg}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="p-3 bg-white rounded-3 border h-100">
+                    <small class="text-muted fw-bold">TOTAL ACTIVE CONFLICTS</small>
+                    <h2 class="fw-bold mt-1 mb-0" th:classappend="${totalConflicts > 0 ? 'text-danger' : 'text-success'}" th:text="${totalConflicts}">0</h2>
+                    <small th:text="${totalConflicts == 0 ? 'Optimal schedule state - 0 hard violations' : 'Click any conflict row below to inspect & interactively resolve'}"></small>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="p-3 bg-white rounded-3 border d-flex align-items-center justify-content-between h-100">
+                    <div>
+                        <strong class="text-navy">Intelligent Conflict Resolution Center</strong>
+                        <p class="text-muted small mb-0">Engine actively monitors room double bookings, capacity overflow, same-day multiple duties, and timetable collisions. Click any entry to open the resolution wizard.</p>
+                    </div>
+                    <span class="badge px-3 py-2" th:classappend="${totalConflicts == 0 ? 'bg-success' : 'bg-danger'}" th:text="${totalConflicts == 0 ? 'STATUS: VALID' : 'ACTION REQUIRED'}"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-card">
+            <div class="content-card-header">
+                <h6 class="mb-0 fw-bold">Diagnostic Log Register (Click any item to resolve)</h6>
+                <span class="badge bg-light text-muted border" th:text="${totalConflicts} + ' Active Issue(s)'"></span>
+            </div>
+
+            <div class="divide-y">
+                <!-- Each conflict is interactive and clickable -->
+                <div th:each="c : ${conflicts}" 
+                     class="conflict-card conflict-item-btn"
+                     th:attr="data-id=${c.id},
+                              data-type=${c.type},
+                              data-category=${c.conflictCategory},
+                              data-title=${c.title},
+                              data-description=${c.description},
+                              data-severity=${c.severity},
+                              data-date=${c.conflictDate},
+                              data-time=${(c.startTime != null ? c.startTime : '') + (c.endTime != null ? ' - ' + c.endTime : '')},
+                              data-exams=${c.relatedExamName},
+                              data-entity=${c.relatedEntity},
+                              data-resolution=${c.suggestedResolution},
+                              data-exam1-id=${c.examId1},
+                              data-exam1-name=${c.exam1Name},
+                              data-exam1-course=${c.exam1Course},
+                              data-exam1-semester=${c.exam1Semester},
+                              data-exam1-subject=${c.exam1Subject},
+                              data-exam1-date=${c.exam1Date},
+                              data-exam1-time=${c.exam1Time},
+                              data-exam1-room=${c.exam1Room},
+                              data-exam2-id=${c.examId2},
+                              data-exam2-name=${c.exam2Name},
+                              data-exam2-course=${c.exam2Course},
+                              data-exam2-semester=${c.exam2Semester},
+                              data-exam2-subject=${c.exam2Subject},
+                              data-exam2-date=${c.exam2Date},
+                              data-exam2-time=${c.exam2Time},
+                              data-exam2-room=${c.exam2Room},
+                              data-room-id=${c.roomId},
+                              data-room-num=${c.roomNumber},
+                              data-room-bldg=${c.roomBuilding},
+                              data-room-cap=${c.roomCapacity},
+                              data-faculty-id=${c.facultyId},
+                              data-faculty-name=${c.facultyName},
+                              data-faculty-dept=${c.facultyDept}">
+                    <div class="flex-shrink-0 mt-1">
+                        <i class="bi bi-exclamation-octagon-fill text-danger fs-3"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="severity-pill" th:classappend="'severity-' + ${c.severity}" th:text="${c.severity}">HIGH</span>
+                                <span class="badge bg-light text-dark border" th:text="${c.type}">ROOM_DOUBLE_BOOKING</span>
+                                <span class="badge bg-primary-subtle text-primary border" th:text="${c.conflictCategory}">ROOM</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 fw-semibold">
+                                <i class="bi bi-wrench-adjustable me-1"></i> Resolve
+                            </button>
+                        </div>
+                        <div class="fw-bold text-navy fs-6" th:text="${c.title}">Conflict Title</div>
+                        <div class="text-secondary small mt-1" th:text="${c.description}">Detailed explanation of the clash.</div>
+                        <div class="d-flex flex-wrap gap-3 mt-2 text-muted small">
+                            <span th:if="${c.conflictDate != null}"><i class="bi bi-calendar-event me-1"></i><strong th:text="${c.conflictDate}"></strong></span>
+                            <span th:if="${c.startTime != null}"><i class="bi bi-clock me-1"></i><span th:text="${c.startTime + (c.endTime != null ? ' - ' + c.endTime : '')}"></span></span>
+                            <span><i class="bi bi-link-45deg me-1"></i>Affected: <strong class="text-dark" th:text="${c.relatedExamName}"></strong></span>
+                            <span th:if="${c.relatedEntity != null}"><i class="bi bi-geo-alt me-1"></i><span th:text="${c.relatedEntity}"></span></span>
+                        </div>
+                        <div class="alert alert-warning py-1 px-2 mt-2 mb-0 small d-inline-block">
+                            <i class="bi bi-lightbulb-fill text-warning me-1"></i>
+                            <strong>Suggested Resolution:</strong> <span th:text="${c.suggestedResolution}">Recommendation text</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(conflicts)}" class="text-center py-5 text-muted">
+                    <i class="bi bi-shield-check text-success fs-1 d-block mb-2"></i>
+                    <strong class="fs-5 text-dark">Zero Conflicts Detected!</strong>
+                    <p class="small text-muted mb-0">All examination dates, room allocations, student cohorts, and faculty duties satisfy all academic institutional constraints.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     INTERACTIVE CONFLICT RESOLUTION MODAL
+     ========================================================================= -->
+<div class="modal fade" id="conflictResolveModal" tabindex="-1" aria-labelledby="conflictResolveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-navy text-white" style="background:#0f172a;">
+                <div>
+                    <h5 class="modal-title fw-bold text-white mb-0" id="conflictModalTitle">Conflict Resolution Wizard</h5>
+                    <small class="text-light opacity-75" id="conflictModalSubtitle">Constraint Enforcement & Live Resolution</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Conflict Diagnostics Overview -->
+                <div class="alert alert-danger border-danger d-flex gap-3 align-items-start mb-3">
+                    <i class="bi bi-exclamation-triangle-fill fs-3 text-danger flex-shrink-0"></i>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span id="modalSeverityBadge" class="severity-pill severity-CRITICAL">CRITICAL</span>
+                            <span id="modalTypeBadge" class="badge bg-light text-dark border">TYPE</span>
+                        </div>
+                        <h6 class="fw-bold mb-1" id="modalDescText">Description text</h6>
+                        <div class="text-muted small mt-1" id="modalMetaInfo">Affected examinations & dates</div>
+                    </div>
+                </div>
+
+                <!-- Recommendation Banner -->
+                <div class="p-3 bg-light rounded-3 border mb-3">
+                    <div class="fw-bold text-primary mb-1"><i class="bi bi-lightbulb me-1"></i>Recommended Resolution Strategy:</div>
+                    <div id="modalResolutionText" class="text-secondary small">Resolution guidance text</div>
+                </div>
+
+                <!-- Automatically Identified Problem Examination Summary Card -->
+                <div class="card border border-primary-subtle bg-light mb-4 shadow-sm">
+                    <div class="card-header bg-white py-2 border-bottom d-flex align-items-center justify-content-between">
+                        <span class="badge bg-primary text-white"><i class="bi bi-crosshair me-1"></i>Problem Examination Identified</span>
+                        <span class="badge bg-light text-secondary border font-monospace" id="modalExamIdBadge">ID: #</span>
+                    </div>
+                    <div class="card-body p-3">
+                        <!-- Dual collision selector (shown only if 2 exams collide) -->
+                        <div id="dualCollisionChooser" class="mb-3 p-2 bg-white rounded border" style="display:none;">
+                            <label class="form-label small fw-bold text-navy mb-1"><i class="bi bi-arrow-left-right me-1 text-primary"></i>Choose which colliding examination session to modify:</label>
+                            <div class="d-flex gap-3 mt-1">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="collisionTargetChoice" id="targetChoiceExam1" value="1" checked onchange="onTargetExamChoiceChange(1)">
+                                    <label class="form-check-label small fw-semibold text-dark" for="targetChoiceExam1" id="targetChoiceExam1Label">Exam 1</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="collisionTargetChoice" id="targetChoiceExam2" value="2" onchange="onTargetExamChoiceChange(2)">
+                                    <label class="form-check-label small fw-semibold text-dark" for="targetChoiceExam2" id="targetChoiceExam2Label">Exam 2</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Active Target Examination Details -->
+                        <div class="row g-2 small">
+                            <div class="col-md-6">
+                                <span class="text-muted d-block" style="font-size:0.72rem; text-transform:uppercase;">Examination Name / Type:</span>
+                                <strong class="text-navy fs-6" id="targetExamName">Examination Name</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <span class="text-muted d-block" style="font-size:0.72rem; text-transform:uppercase;">Curriculum Subject:</span>
+                                <strong class="text-dark" id="targetExamSubject">Subject Name</strong>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="text-muted d-block" style="font-size:0.72rem; text-transform:uppercase;">Course & Semester:</span>
+                                <span id="targetExamCourseSem" class="fw-semibold text-primary">Course</span>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="text-muted d-block" style="font-size:0.72rem; text-transform:uppercase;">Exam Date:</span>
+                                <span id="targetExamDate" class="fw-semibold text-dark">Date</span>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="text-muted d-block" style="font-size:0.72rem; text-transform:uppercase;">Time Slot:</span>
+                                <span id="targetExamTime" class="fw-semibold text-dark">Time</span>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="text-muted d-block" style="font-size:0.72rem; text-transform:uppercase;">Assigned Room:</span>
+                                <span id="targetExamRoom" class="badge bg-light text-dark border">Room</span>
+                            </div>
+                            <div class="col-12 mt-2" id="targetExamFacultyBox" style="display:none;">
+                                <span class="text-muted d-block" style="font-size:0.72rem; text-transform:uppercase;">Faculty Involved:</span>
+                                <span class="badge bg-warning-subtle text-warning-emphasis border" id="targetExamFaculty">Faculty Name</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Resolution Actions -->
+                <h6 class="fw-bold text-navy mb-3"><i class="bi bi-tools me-2 text-primary"></i>Choose Resolution Action:</h6>
+                
+                <ul class="nav nav-pills mb-3 gap-2" id="resolutionTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active py-2 px-3 fw-bold small" id="tab-room-btn" data-bs-toggle="pill" data-bs-target="#tab-room" type="button" role="tab">
+                            <i class="bi bi-door-open me-1"></i> Reassign Room
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-2 px-3 fw-bold small" id="tab-reschedule-btn" data-bs-toggle="pill" data-bs-target="#tab-reschedule" type="button" role="tab">
+                            <i class="bi bi-calendar-event me-1"></i> Reschedule Date / Time
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-2 px-3 fw-bold small" id="tab-faculty-btn" data-bs-toggle="pill" data-bs-target="#tab-faculty" type="button" role="tab">
+                            <i class="bi bi-person-badge me-1"></i> Reassign Faculty
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content border rounded-3 p-3 bg-white" id="resolutionTabsContent">
+                    <!-- Action 1: Reassign Room Form -->
+                    <div class="tab-pane fade show active" id="tab-room" role="tabpanel">
+                        <form th:action="@{/admin/conflicts/resolve/reassign-room}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <!-- Automatically bound problem exam ID -->
+                            <input type="hidden" name="examId" class="target-exam-id-input" id="roomExamIdHidden">
+
+                            <div class="row g-3 align-items-center">
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-bold">Target Examination *</label>
+                                    <div class="form-control form-control-sm bg-light fw-bold text-navy target-exam-display-text">Identified Examination</div>
+                                </div>
+                                <div class="col-md-7">
+                                    <label class="form-label small fw-bold">Select Available Destination Room *</label>
+                                    <select name="newRoomId" id="roomSelect" class="form-select form-select-sm" required>
+                                        <option value="">-- Choose destination room --</option>
+                                        <option th:each="r : ${allRooms}" th:value="${r.id}" th:text="${r.roomNumber + ' - ' + r.building + ' (Capacity: ' + r.capacity + ')'}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="submit" class="btn btn-sm btn-primary px-3"><i class="bi bi-check-circle me-1"></i> Reassign Room Now</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Action 2: Reschedule Date/Time Form -->
+                    <div class="tab-pane fade" id="tab-reschedule" role="tabpanel">
+                        <form th:action="@{/admin/conflicts/resolve/reschedule}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <!-- Automatically bound problem exam ID -->
+                            <input type="hidden" name="examId" class="target-exam-id-input" id="rescheduleExamIdHidden">
+
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Target Examination *</label>
+                                    <div class="form-control form-control-sm bg-light fw-bold text-navy target-exam-display-text">Identified Examination</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">New Examination Date *</label>
+                                    <input type="date" name="newExamDate" id="rescheduleDateInput" class="form-control form-control-sm" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">New Start Time *</label>
+                                    <input type="time" name="newStartTime" id="rescheduleTimeInput" value="09:30" class="form-control form-control-sm" required>
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="submit" class="btn btn-sm btn-warning px-3"><i class="bi bi-calendar-check me-1"></i> Reschedule Examination</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Action 3: Reassign Faculty Form -->
+                    <div class="tab-pane fade" id="tab-faculty" role="tabpanel">
+                        <form th:action="@{/admin/conflicts/resolve/reassign-faculty}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <!-- Automatically bound problem exam ID -->
+                            <input type="hidden" name="examId" class="target-exam-id-input" id="facultyExamIdHidden">
+                            <input type="hidden" name="oldFacultyId" id="facultyOldIdInput" value="">
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Target Examination *</label>
+                                    <div class="form-control form-control-sm bg-light fw-bold text-navy target-exam-display-text">Identified Examination</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Select Replacement Invigilator *</label>
+                                    <select name="newFacultyId" id="facultySelect" class="form-select form-select-sm" required>
+                                        <option value="">-- Choose eligible faculty member --</option>
+                                        <option th:each="f : ${allFaculty}" th:value="${f.id}" th:text="${f.fullName + ' (' + (f.department != null ? f.department.deptCode : 'N/A') + ') - Duties: ' + f.currentDutyCount + '/' + f.maxDuties}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-12 text-end">
+                                    <button type="submit" class="btn btn-sm btn-success px-3"><i class="bi bi-person-check me-1"></i> Confirm Faculty Reassignment</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="none">
+    let currentExam1 = null;
+    let currentExam2 = null;
+
+    function applyTargetExam(exam) {
+        if (!exam || !exam.id) return;
+        document.getElementById('modalExamIdBadge').textContent = 'ID: #' + exam.id;
+        document.getElementById('targetExamName').textContent = exam.name || ('Examination #' + exam.id);
+        document.getElementById('targetExamSubject').textContent = exam.subject || 'N/A';
+        document.getElementById('targetExamCourseSem').textContent = (exam.course || '') + (exam.semester ? ' - Semester ' + exam.semester : '');
+        document.getElementById('targetExamDate').textContent = exam.date || 'N/A';
+        document.getElementById('targetExamTime').textContent = exam.time || 'N/A';
+        document.getElementById('targetExamRoom').textContent = exam.room || 'Unallocated';
+
+        // Set hidden inputs across all resolution forms - automatic identification!
+        document.querySelectorAll('.target-exam-id-input').forEach(input => input.value = exam.id);
+        document.querySelectorAll('.target-exam-display-text').forEach(el => {
+            el.textContent = (exam.name || ('Exam #' + exam.id)) + (exam.subject ? ' - ' + exam.subject : '');
+        });
+
+        // Prepopulate reschedule date if available
+        const reschedDate = document.getElementById('rescheduleDateInput');
+        if (reschedDate && exam.date) {
+            reschedDate.value = exam.date;
+        }
+    }
+
+    function onTargetExamChoiceChange(choice) {
+        if (choice === 1 && currentExam1) {
+            applyTargetExam(currentExam1);
+        } else if (choice === 2 && currentExam2) {
+            applyTargetExam(currentExam2);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const conflictCards = document.querySelectorAll('.conflict-item-btn');
+        const modalEl = document.getElementById('conflictResolveModal');
+        const modal = new bootstrap.Modal(modalEl);
+
+        conflictCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const data = this.dataset;
+
+                // Header & Diagnostics
+                document.getElementById('conflictModalTitle').textContent = data.title || 'Conflict Diagnostics';
+                document.getElementById('modalDescText').textContent = data.description || '';
+                document.getElementById('modalResolutionText').textContent = data.resolution || 'Please reallocate resource or reschedule session.';
+
+                const severityBadge = document.getElementById('modalSeverityBadge');
+                severityBadge.textContent = data.severity || 'CRITICAL';
+                severityBadge.className = 'severity-pill severity-' + (data.severity || 'CRITICAL');
+
+                document.getElementById('modalTypeBadge').textContent = data.type || 'CONFLICT';
+                document.getElementById('modalMetaInfo').textContent =
+                    (data.date ? 'Date: ' + data.date + ' | ' : '') +
+                    (data.time ? 'Time: ' + data.time + ' | ' : '') +
+                    (data.exams ? 'Affected: ' + data.exams : '');
+
+                // Build identified Exam 1 object
+                const examNames = (data.exams || '').split('&');
+                currentExam1 = {
+                    id: data.exam1Id,
+                    name: data.exam1Name || (examNames[0] ? examNames[0].trim() : 'Examination #' + data.exam1Id),
+                    course: data.exam1Course || '',
+                    semester: data.exam1Semester || '',
+                    subject: data.exam1Subject || '',
+                    date: data.exam1Date || data.date || '',
+                    time: data.exam1Time || data.time || '',
+                    room: data.exam1Room || data.entity || 'Room'
+                };
+
+                // Build Exam 2 if present (collision between 2 exams)
+                if (data.exam2Id) {
+                    currentExam2 = {
+                        id: data.exam2Id,
+                        name: data.exam2Name || (examNames[1] ? examNames[1].trim() : 'Examination #' + data.exam2Id),
+                        course: data.exam2Course || '',
+                        semester: data.exam2Semester || '',
+                        subject: data.exam2Subject || '',
+                        date: data.exam2Date || data.date || '',
+                        time: data.exam2Time || data.time || '',
+                        room: data.exam2Room || 'Room'
+                    };
+                    const chooser = document.getElementById('dualCollisionChooser');
+                    if (chooser) {
+                        chooser.style.display = 'block';
+                        document.getElementById('targetChoiceExam1Label').textContent = currentExam1.name + ' (' + (currentExam1.course || '') + ')';
+                        document.getElementById('targetChoiceExam2Label').textContent = currentExam2.name + ' (' + (currentExam2.course || '') + ')';
+                        document.getElementById('targetChoiceExam1').checked = true;
+                    }
+                } else {
+                    currentExam2 = null;
+                    const chooser = document.getElementById('dualCollisionChooser');
+                    if (chooser) chooser.style.display = 'none';
+                }
+
+                // Automatically apply Exam 1 details to modal
+                applyTargetExam(currentExam1);
+
+                // Faculty metadata
+                const oldFacInput = document.getElementById('facultyOldIdInput');
+                if (oldFacInput) oldFacInput.value = data.facultyId || '';
+                const facBox = document.getElementById('targetExamFacultyBox');
+                const facText = document.getElementById('targetExamFaculty');
+                if (data.facultyName && facBox && facText) {
+                    facText.textContent = data.facultyName + (data.facultyDept ? ' (' + data.facultyDept + ')' : '');
+                    facBox.style.display = 'block';
+                } else if (facBox) {
+                    facBox.style.display = 'none';
+                }
+
+                // Switch active tab according to conflict category
+                if (data.category === 'ROOM') {
+                    const roomTabBtn = new bootstrap.Tab(document.getElementById('tab-room-btn'));
+                    roomTabBtn.show();
+                } else if (data.category === 'FACULTY') {
+                    const facultyTabBtn = new bootstrap.Tab(document.getElementById('tab-faculty-btn'));
+                    facultyTabBtn.show();
+                } else {
+                    const reschedTabBtn = new bootstrap.Tab(document.getElementById('tab-reschedule-btn'));
+                    reschedTabBtn.show();
+                }
+
+                modal.show();
+            });
+        });
+    });
+</script>
+</body>
+</html>

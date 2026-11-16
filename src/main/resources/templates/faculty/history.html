@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duty History | SmartExam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --navy: #0f172a; --blue: #2563eb; --sidebar-width: 260px; }
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f1f5f9; color: #1e293b; margin: 0; }
+        .sidebar { position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100vh; background: var(--navy); z-index: 1000; display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar-brand { padding: 22px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-brand h4 { color: #fff; font-weight: 700; font-size: 1.15rem; margin: 0; }
+        .sidebar-brand p { color: #94a3b8; font-size: 0.72rem; margin: 2px 0 0; }
+        .sidebar-nav { padding: 14px 0; flex: 1; }
+        .sidebar-section { padding: 8px 20px 4px; color: #64748b; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
+        .sidebar-nav .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 500; border-left: 3px solid transparent; transition: all 0.15s; }
+        .sidebar-nav .nav-link:hover { color: #e2e8f0; background: rgba(255,255,255,0.05); }
+        .sidebar-nav .nav-link.active { color: #fff; background: rgba(37,99,235,0.18); border-left-color: var(--blue); font-weight: 600; }
+        .sidebar-nav .nav-link i { font-size: 1.05rem; width: 20px; }
+        .main-wrapper { margin-left: var(--sidebar-width); min-height: 100vh; display: flex; flex-direction: column; }
+        .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar-title { font-size: 1.05rem; font-weight: 600; color: var(--navy); }
+        .user-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--blue); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem; font-weight: 700; }
+        .notification-btn { position: relative; }
+        .notification-badge { position: absolute; top: -3px; right: -3px; background: #ef4444; color: #fff; font-size: 0.62rem; border-radius: 50%; width: 17px; height: 17px; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+        .page-content { padding: 26px 28px; flex: 1; }
+        .content-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
+        .content-card-header { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
+        .table-smart th { background: #f8fafc; color: #475569; font-size: 0.74rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 11px 16px; border-bottom: 1px solid #e2e8f0; }
+        .table-smart td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; vertical-align: middle; }
+        .table-smart tbody tr:hover { background: #f8fafc; }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: facultySidebar('history')}"></div>
+
+<div class="main-wrapper">
+    <div th:replace="~{fragments/layout :: topbar('Duty History')}"></div>
+
+    <div class="page-content">
+        <div class="content-card">
+            <div class="content-card-header">
+                <div>
+                    <h6 class="fw-bold mb-0 text-navy">Completed Invigilation Duties Archive</h6>
+                    <small class="text-muted">Historical record of examination sessions successfully invigilated.</small>
+                </div>
+                <span class="badge bg-secondary px-3 py-2" th:text="${pastDuties != null ? pastDuties.size() + ' Past Sessions' : '0 Past Sessions'}">0</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-smart mb-0">
+                    <thead>
+                        <tr>
+                            <th>Completed Date</th>
+                            <th>Time Window</th>
+                            <th>Subject</th>
+                            <th>Examination Hall</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="d : ${pastDuties}">
+                            <td class="fw-bold text-navy" th:text="${#temporals.format(d.examination.examDate, 'dd MMM yyyy')}">Date</td>
+                            <td th:text="${#temporals.format(d.examination.startTime, 'HH:mm')} + ' - ' + ${#temporals.format(d.examination.endTime, 'HH:mm')}">Time</td>
+                            <td class="fw-semibold" th:text="${d.examination.subject != null ? d.examination.subject.subjectName : d.examination.examName}">Subject</td>
+                            <td th:text="${d.examination.room != null ? d.examination.room.roomNumber : 'Hall'}">Room</td>
+                            <td><span class="badge bg-success-subtle text-success border border-success">Completed & Verified</span></td>
+                        </tr>
+                        <tr th:if="${pastDuties == null or pastDuties.isEmpty()}">
+                            <td colspan="5" class="text-center py-4 text-muted">No completed invigilation duties recorded in past sessions.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

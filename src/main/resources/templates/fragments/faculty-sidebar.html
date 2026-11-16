@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- FACULTY SIDEBAR (Consistent with Admin/Coordinator styling) -->
+<nav th:fragment="facultySidebar(active)" class="sidebar">
+    <div class="sidebar-brand">
+        <h4><i class="bi bi-mortarboard-fill me-2 text-primary"></i>SmartExam</h4>
+        <p>Faculty Self-Service Portal</p>
+    </div>
+    <div class="sidebar-nav">
+        <p class="sidebar-section">Main</p>
+        <a href="/faculty/dashboard" class="nav-link" th:classappend="${active == 'dashboard' ? 'active' : ''}">
+            <i class="bi bi-speedometer2"></i> 1. Dashboard
+        </a>
+        <a href="/faculty/profile" class="nav-link" th:classappend="${active == 'profile' ? 'active' : ''}">
+            <i class="bi bi-person-circle"></i> 2. My Profile
+        </a>
+        <a href="/faculty/availability" class="nav-link" th:classappend="${active == 'availability' ? 'active' : ''}">
+            <i class="bi bi-calendar-check"></i> 3. My Availability
+        </a>
+
+        <p class="sidebar-section mt-2">Duties & Timetable</p>
+        <a href="/faculty/duties" class="nav-link" th:classappend="${active == 'duties' ? 'active' : ''}">
+            <i class="bi bi-person-check-fill"></i> 4. My Invigilation Duties
+        </a>
+        <a href="/faculty/timetable" class="nav-link" th:classappend="${active == 'timetable' ? 'active' : ''}">
+            <i class="bi bi-calendar-week"></i> 5. My Examination Timetable
+        </a>
+        <a href="/faculty/history" class="nav-link" th:classappend="${active == 'history' ? 'active' : ''}">
+            <i class="bi bi-clock-history"></i> 6. Duty History
+        </a>
+        <a href="/faculty/seating" class="nav-link" th:classappend="${active == 'seating' ? 'active' : ''}">
+            <i class="bi bi-grid-3x3"></i> 7. Duty Seating Plan
+        </a>
+
+        <p class="sidebar-section mt-2">Account</p>
+        <a href="/notifications" class="nav-link" th:classappend="${active == 'notifications' ? 'active' : ''}">
+            <i class="bi bi-bell"></i> 8. Notifications
+        </a>
+        <form th:action="@{/logout}" method="post" style="margin: 0; padding: 0;">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent text-danger">
+                <i class="bi bi-box-arrow-right"></i> 9. Logout
+            </button>
+        </form>
+    </div>
+</nav>
+
+</body>
+</html>
+

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examination Timetable Overview | SmartExam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --navy: #0f172a; --blue: #2563eb; --sidebar-width: 260px; }
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f1f5f9; color: #1e293b; margin: 0; }
+        .sidebar { position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100vh; background: var(--navy); z-index: 1000; display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar-brand { padding: 22px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-brand h4 { color: #fff; font-weight: 700; font-size: 1.15rem; margin: 0; }
+        .sidebar-brand p { color: #94a3b8; font-size: 0.72rem; margin: 2px 0 0; }
+        .sidebar-nav { padding: 14px 0; flex: 1; }
+        .sidebar-section { padding: 8px 20px 4px; color: #64748b; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
+        .sidebar-nav .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 500; border-left: 3px solid transparent; }
+        .sidebar-nav .nav-link.active { color: #fff; background: rgba(37,99,235,0.18); border-left-color: var(--blue); font-weight: 600; }
+        .sidebar-nav .nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .sidebar-nav .nav-link i { font-size: 1.05rem; width: 20px; }
+        .main-wrapper { margin-left: var(--sidebar-width); min-height: 100vh; display: flex; flex-direction: column; }
+        .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar-title { font-size: 1.05rem; font-weight: 600; color: var(--navy); }
+        .page-content { padding: 26px 28px; flex: 1; }
+        .content-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
+        .content-card-header { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
+        .table-smart th { background: #f8fafc; color: #475569; font-size: 0.74rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 11px 16px; border-bottom: 1px solid #e2e8f0; }
+        .table-smart td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; vertical-align: middle; }
+        @media print {
+            .sidebar, .topbar, .no-print, .btn, .card { display: none !important; }
+            .main-wrapper { margin-left: 0 !important; width: 100% !important; }
+            .page-content { padding: 0 !important; }
+            .content-card { border: none !important; box-shadow: none !important; }
+            table { width: 100% !important; border-collapse: collapse; }
+            th, td { border: 1px solid #cbd5e1 !important; padding: 8px !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: coordinatorSidebar('timetable')}"></div>
+
+<div class="main-wrapper">
+    <div th:replace="~{fragments/layout :: topbar('University Master Examination Timetable')}"></div>
+
+    <div class="page-content">
+        <div th:if="${successMsg}" class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMsg}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${errorMsg}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Timetable Filter Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-3">
+                <form method="get" th:action="@{/coordinator/timetable}" class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Filter Department</label>
+                        <select name="deptId" class="form-select form-select-sm">
+                            <option value="">All Academic Departments</option>
+                            <option th:each="dept : ${departments}" th:value="${dept.id}" th:text="${dept.deptName + ' (' + dept.deptCode + ')'}" th:selected="${dept.id == selectedDept}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Filter Specific Date</label>
+                        <input type="date" name="date" class="form-control form-control-sm" th:value="${selectedDate}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold">Semester</label>
+                        <select name="semester" class="form-select form-select-sm">
+                            <option value="">All</option>
+                            <option th:each="s : ${#numbers.sequence(1, 8)}" th:value="${s}" th:text="'Sem ' + ${s}" th:selected="${s == selectedSemester}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-filter me-1"></i> Apply Filter</button>
+                        <a href="/coordinator/timetable" class="btn btn-sm btn-outline-secondary">Reset</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Master Timetable Table -->
+        <div class="content-card">
+            <div class="content-card-header">
+                <h6 class="fw-bold mb-0">Scheduled Examination Sessions (<span th:text="${#lists.size(examinations)}">0</span> sessions)</h6>
+                <div class="d-flex gap-2 no-print">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+                        <i class="bi bi-printer me-1"></i> Print Timetable
+                    </button>
+                    <a href="/admin/schedule/generate" class="btn btn-sm btn-primary" style="background:#2563eb; border:none;">
+                        <i class="bi bi-magic me-1"></i> Generate Complete Timetable
+                    </a>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-smart mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Subject & Examination</th>
+                            <th>Department & Sem</th>
+                            <th>Room Location</th>
+                            <th>Duration</th>
+                            <th>Assigned Invigilators</th>
+                            <th>Staffing Status</th>
+                            <th>Readiness</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="e : ${examinations}">
+                            <td>
+                                <strong class="text-navy" th:text="${#temporals.format(e.examDate, 'dd MMM yyyy')}">Date</strong>
+                                <small class="text-muted d-block" th:text="${e.startTime + ' - ' + e.endTime}">Time</small>
+                            </td>
+                            <td>
+                                <a th:href="@{/admin/examinations/view/{id}(id=${e.id})}" class="fw-bold text-primary text-decoration-none d-block" title="Click to view full examination details">
+                                    <span th:text="${e.examName}">Examination Name</span>
+                                    <i class="bi bi-box-arrow-up-right ms-1 small"></i>
+                                </a>
+                                <small class="text-secondary fw-medium" th:text="${e.subject?.subjectName}"></small>
+                                <span class="badge bg-light text-dark border ms-1" th:text="${e.subject?.subjectCode}">SUB101</span>
+                            </td>
+                            <td>
+                                <span class="fw-semibold text-navy" th:text="${e.department?.deptCode}">MCA</span>
+                                <small class="text-muted d-block" th:text="'Semester ' + ${e.semester}"></small>
+                            </td>
+                            <td>
+                                <span th:if="${e.examRoom != null}" class="badge bg-info text-dark" th:text="${e.examRoom?.roomNumber}">Room</span>
+                                <span th:if="${e.examRoom == null}" class="badge bg-warning text-dark fst-italic">Unallocated</span>
+                                <small th:if="${e.examRoom != null}" class="text-muted d-block" th:text="${e.examRoom?.building}"></small>
+                            </td>
+                            <td th:text="${e.durationMinutes + ' mins'}">180 mins</td>
+                            <td>
+                                <div th:if="${not #lists.isEmpty(e.invigilations)}" class="d-flex flex-column gap-1">
+                                    <span th:each="inv : ${e.invigilations}" class="badge bg-light text-primary border text-start" style="font-size:0.75rem;">
+                                        <i class="bi bi-person-badge me-1"></i>
+                                        <span th:text="${inv.faculty?.fullName}">Prof. Suresh Babu</span>
+                                        <span class="text-muted" th:if="${inv.faculty?.department != null}" th:text="' (' + ${inv.faculty.department.deptCode} + ')'"> (MCA)</span>
+                                    </span>
+                                </div>
+                                <span th:if="${#lists.isEmpty(e.invigilations)}" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Faculty Assignment Pending
+                                </span>
+                            </td>
+                            <td>
+                                <!-- Clickable Faculty Staffing Status Badge linking to Invigilator assignment modal -->
+                                <a th:if="${e.facultyStaffingStatus == 'FULLY_ASSIGNED'}"
+                                   th:href="@{/admin/invigilation(examId=${e.id})}"
+                                   class="badge bg-success-subtle text-success border border-success-subtle text-decoration-none d-inline-block py-1 px-2"
+                                   title="Click to manage invigilator duties">
+                                    <i class="bi bi-check2-circle me-1"></i>Fully Assigned (<span th:text="${e.assignedInvigilatorCount + '/' + e.requiredInvigilatorCount}"></span>)
+                                </a>
+                                <a th:if="${e.facultyStaffingStatus == 'PARTIALLY_ASSIGNED'}"
+                                   th:href="@{/admin/invigilation(examId=${e.id})}"
+                                   class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle text-decoration-none d-inline-block py-1 px-2"
+                                   title="Click to assign remaining required faculty">
+                                    <i class="bi bi-person-dash me-1"></i>Partially Assigned (<span th:text="${e.assignedInvigilatorCount + '/' + e.requiredInvigilatorCount}"></span>, Need <span th:text="${e.remainingInvigilatorsNeeded}"></span>)
+                                </a>
+                                <a th:if="${e.facultyStaffingStatus == 'FACULTY_REQUIRED'}"
+                                   th:href="@{/admin/invigilation(examId=${e.id})}"
+                                   class="badge bg-danger-subtle text-danger border border-danger-subtle text-decoration-none d-inline-block py-1 px-2"
+                                   title="Click to assign required faculty invigilator">
+                                    <i class="bi bi-person-exclamation me-1"></i>Faculty Required (Need <span th:text="${e.requiredInvigilatorCount}"></span>)
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge" th:classappend="${e.status.name() == 'SCHEDULED' ? 'bg-primary' : (e.status.name() == 'COMPLETED' ? 'bg-success' : 'bg-secondary')}" th:text="${e.status}">SCHEDULED</span>
+                                <div class="mt-1">
+                                    <span th:if="${e.readinessStatus == 'READY'}" class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:0.68rem;"><i class="bi bi-check2-all me-1"></i>READY</span>
+                                    <span th:if="${e.readinessStatus == 'NEEDS_ROOM'}" class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:0.68rem;"><i class="bi bi-door-closed me-1"></i>NEEDS ROOM</span>
+                                    <span th:if="${e.readinessStatus == 'NEEDS_SEATING'}" class="badge bg-info-subtle text-info-emphasis border border-info-subtle" style="font-size:0.68rem;"><i class="bi bi-grid me-1"></i>NEEDS SEATING</span>
+                                    <span th:if="${e.readinessStatus == 'NEEDS_INVIGILATOR'}" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size:0.68rem;"><i class="bi bi-person-exclamation me-1"></i>NEEDS FACULTY</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <a th:href="@{/admin/examinations/view/{id}(id=${e.id})}" class="btn btn-sm btn-outline-primary py-0 px-2" title="View Full Details">
+                                        <i class="bi bi-eye"></i> Details
+                                    </a>
+                                    <a th:href="@{/admin/seating(examId=${e.id})}" class="btn btn-sm btn-outline-info py-0 px-2" title="View Seating Arrangement">
+                                        <i class="bi bi-grid-3x3"></i> Seating
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(examinations)}">
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>
+                                No examination sessions found matching the filter criteria.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
